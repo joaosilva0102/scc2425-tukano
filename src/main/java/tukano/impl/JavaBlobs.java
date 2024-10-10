@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static tukano.api.Result.error;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
 
+
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -12,6 +13,7 @@ import tukano.api.Result;
 import tukano.impl.rest.TukanoRestServer;
 import tukano.impl.storage.BlobStorage;
 import tukano.impl.storage.FilesystemStorage;
+import tukano.impl.storage.CloudBlobStorage;
 import utils.Hash;
 import utils.Hex;
 
@@ -22,6 +24,7 @@ public class JavaBlobs implements Blobs {
 
 	public String baseURI;
 	private BlobStorage storage;
+	private CloudBlobStorage cloudStorage;
 	
 	synchronized public static Blobs getInstance() {
 		if( instance == null )
@@ -31,6 +34,7 @@ public class JavaBlobs implements Blobs {
 	
 	private JavaBlobs() {
 		storage = new FilesystemStorage();
+		cloudStorage = new CloudBlobStorage();
 		baseURI = String.format("%s/%s/", TukanoRestServer.serverURI, Blobs.NAME);
 	}
 	
@@ -41,7 +45,8 @@ public class JavaBlobs implements Blobs {
 		if (!validBlobId(blobId, token))
 			return error(FORBIDDEN);
 
-		return storage.write( toPath( blobId ), bytes);
+//		return storage.write( toPath( blobId ), bytes);
+		return cloudStorage.write( toPath( blobId ), bytes);
 	}
 
 	@Override
@@ -51,7 +56,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-		return storage.read( toPath( blobId ) );
+//		return storage.read( toPath( blobId ) );
+		return cloudStorage.read( toPath( blobId ) );
 	}
 
 	@Override
@@ -61,7 +67,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-		return storage.read( toPath(blobId), sink);
+//		return storage.read( toPath(blobId), sink);
+		return cloudStorage.read( toPath(blobId), sink);
 	}
 
 	@Override
@@ -71,7 +78,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-		return storage.delete( toPath(blobId));
+//		return storage.delete( toPath(blobId));
+		return cloudStorage.delete( toPath(blobId));
 	}
 	
 	@Override
