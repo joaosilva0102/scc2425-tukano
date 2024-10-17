@@ -61,7 +61,8 @@ public class Test {
 		System.out.println( "BlobID:" + blobId );
 		
 		var token = blobUrl.getQuery().split("=")[1];
-		
+
+		System.out.println( "AQUIIIII");
 		blobs.upload(blobUrl.toString(), randomBytes( 100 ), token);
 
 		

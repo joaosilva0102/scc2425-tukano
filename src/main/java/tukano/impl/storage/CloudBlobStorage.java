@@ -6,41 +6,51 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import tukano.api.Result;
+import utils.Hash;
+import utils.IO;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Consumer;
 
-import static tukano.api.Result.ErrorCode.BAD_REQUEST;
-import static tukano.api.Result.ErrorCode.INTERNAL_ERROR;
+import static tukano.api.Result.ErrorCode.*;
 import static tukano.api.Result.error;
 import static tukano.api.Result.ok;
 
 public class CloudBlobStorage implements BlobStorage {
 
-    private final String storageConnectionString = " ";
-    private static final String BLOBS_CONTAINER_NAME = " ";
+    private final String storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=sto62612northeurope;AccountKey=pYe+UhUDzJXoDsIzBG0SbAt4ic5yGQOwqQpFH0gjlpTDiD6RxiR6+VDUXXMyvEPHWBLJXwQKKAZy+AStoYUDiQ==;EndpointSuffix=core.windows.net";
+    private static final String BLOBS_CONTAINER_NAME = "shorts";
+    private static BlobContainerClient containerClient;
 
-    public CloudBlobStorage() {}
+    public CloudBlobStorage() {
+        containerClient = new BlobContainerClientBuilder()
+                .connectionString(storageConnectionString)
+                .containerName(BLOBS_CONTAINER_NAME)
+                .buildClient();
+    }
 
     @Override
     public Result<Void> write(String path, byte[] bytes) {
-        try {
-            BlobContainerClient containerClient = new BlobContainerClientBuilder()
-                    .connectionString(storageConnectionString)
-                    .containerName(BLOBS_CONTAINER_NAME)
-                    .buildClient();
+        if (path == null)
+            return error(BAD_REQUEST);
 
+        try {
             BlobClient blob = containerClient.getBlobClient(path);
+            if (blob.exists()) {
+                if (Arrays.equals(Hash.sha256(bytes), Hash.sha256(blob.downloadContent().toBytes())))
+                    return ok();
+                else
+                    return error(CONFLICT);
+            }
             blob.upload(BinaryData.fromBytes(bytes));
             System.out.println("File uploaded : " + path);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-           return error(BAD_REQUEST);
         }
         return ok();
     }
@@ -51,11 +61,6 @@ public class CloudBlobStorage implements BlobStorage {
             return error(BAD_REQUEST);
 
         try {
-            BlobContainerClient containerClient = new BlobContainerClientBuilder()
-                    .connectionString(storageConnectionString)
-                    .containerName(BLOBS_CONTAINER_NAME)
-                    .buildClient();
-
             BlobClient blob = containerClient.getBlobClient(path);
             blob.delete();
         } catch (Exception e) {
@@ -67,22 +72,22 @@ public class CloudBlobStorage implements BlobStorage {
 
     @Override
     public Result<byte[]> read(String path) {
-        BinaryData bytes;
-        try {
-            BlobContainerClient containerClient = new BlobContainerClientBuilder()
-                    .connectionString(storageConnectionString)
-                    .containerName(BLOBS_CONTAINER_NAME)
-                    .buildClient();
+        BinaryData bytes = null;
 
-            BlobClient blob = containerClient.getBlobClient(path);
-             bytes = blob.downloadContent();
-            System.out.println("File uploaded : " + path);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+        if (path == null)
             return error(BAD_REQUEST);
+        try {
+            BlobClient blob = containerClient.getBlobClient(path);
+
+            if (blob.exists())
+                return error(NOT_FOUND);
+
+            bytes = blob.downloadContent();
+            System.out.println("File uploaded : " + path);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return bytes != null ? ok( bytes.toBytes() ) : error( INTERNAL_ERROR );
+        return bytes != null ? ok(bytes.toBytes()) : error(INTERNAL_ERROR);
     }
 
     @Override
