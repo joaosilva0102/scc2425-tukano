@@ -13,6 +13,7 @@ import static utils.DB.getOne;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import tukano.api.Blobs;
 import tukano.api.Result;
@@ -60,9 +61,9 @@ public class JavaShorts implements Shorts {
 		if (shortId == null)
 			return error(BAD_REQUEST);
 
-		var query = format("SELECT count(*) FROM Likes l WHERE l.shortId = '%s'", shortId);
-		var likes = DB.sql(query, Long.class);
-		return errorOrValue(getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes.get(0)));
+		var query = format("SELECT * FROM Likes l WHERE l.shortId = '%s'", shortId);
+		var likes = DB.sql(query, Likes.class).size();
+		return errorOrValue(getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
 	}
 
 	@Override
@@ -72,17 +73,17 @@ public class JavaShorts implements Shorts {
 		return errorOrResult(getShort(shortId), shrt -> {
 
 			return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
-				return DB.transaction(cosmosContainer -> {
-					cosmosContainer.deleteItem(shrt, null);
+				DB.deleteOne(shrt);
 
-					var query = format("SELECT Likes l WHERE l.shortId = '%s'", shortId);
-					var itemsToDelete = cosmosContainer.queryItems(query, null, Likes.class);
+				var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
+				var itemsToDelete = DB.sql(query, Likes.class);
 
-					for (Likes like : itemsToDelete)
-						cosmosContainer.deleteItem(like, null);
+				for (Likes like : itemsToDelete)
+					DB.deleteOne(like);
 
-					JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
-				});
+				JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
+
+				return Result.ok();
 			});
 		});
 	}
@@ -92,7 +93,8 @@ public class JavaShorts implements Shorts {
 		Log.info(() -> format("getShorts : userId = %s\n", userId));
 
 		var query = format("SELECT s.shortId FROM Short s WHERE s.ownerId = '%s'", userId);
-		return errorOrValue(okUser(userId), DB.sql(query, String.class));
+		return errorOrValue(okUser(userId), DB.sql(query, Short.class)
+				.stream().map(Short::getShortId).collect(Collectors.toList()));
 	}
 
 	@Override
@@ -111,7 +113,8 @@ public class JavaShorts implements Shorts {
 		Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
 
 		var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
-		return errorOrValue(okUser(userId, password), DB.sql(query, String.class));
+		return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
+				.stream().map(Following::getFollower).collect(Collectors.toList()));
 	}
 
 	@Override
@@ -133,7 +136,8 @@ public class JavaShorts implements Shorts {
 
 			var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
 
-			return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, String.class));
+			return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
+					.stream().map(Likes::getUserId).collect(Collectors.toList()));
 		});
 	}
 
@@ -141,15 +145,32 @@ public class JavaShorts implements Shorts {
 	public Result<List<String>> getFeed(String userId, String password) {
 		Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-		final var QUERY_FMT = """
-				SELECT s.shortId, s.timestamp FROM Short s WHERE	s.ownerId = '%s'
-				UNION
-				SELECT s.shortId, s.timestamp FROM Short s, Following f
-					WHERE
-						f.followee = s.ownerId AND f.follower = '%s'
-				ORDER BY s.timestamp DESC""";
+		final var QUERY_1_FMT = """
+					SELECT * FROM Following f
+					WHERE f.follower = '%s'
+				""";
 
-		return errorOrValue(okUser(userId, password), DB.sql(format(QUERY_FMT, userId, userId), String.class));
+		var result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
+				.stream().map(Following::getFollowee).collect(Collectors.toList()));
+
+		if(!result.isOK()) return result;
+
+		var usersList = result.value();
+
+		usersList.add(userId);
+
+		String usersFormated = usersList.stream()
+				.map(id -> "'" + id + "'")
+				.collect(Collectors.joining(", "));
+
+		final var QUERY_2_FMT = """
+					SELECT * FROM Short s
+					WHERE s.ownerId IN (%s)
+					ORDER BY s.timestamp DESC
+				""";
+
+		return errorOrValue(okUser(userId, password), DB.sql(format(QUERY_2_FMT, usersFormated), Short.class)
+				.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
 	}
 
 	protected Result<User> okUser(String userId, String pwd) {
@@ -171,21 +192,28 @@ public class JavaShorts implements Shorts {
 		if (!Token.isValid(token, userId))
 			return error(FORBIDDEN);
 
-		return DB.transaction((cosmosContainer) -> {
+		// delete shorts
+		var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
+		var res1 = DB.sql(query1, Short.class);
+		for(Short s: res1)
+			if(!DB.deleteOne(s).isOK())
+				return error(BAD_REQUEST);
 
-			// delete shorts
-			var query1 = format("DELETE Short s WHERE s.ownerId = '%s'", userId);
-			cosmosContainer.queryItems(query1, null, Short.class);
+		// delete follows
+		var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
+		var res2 = DB.sql(query2, Following.class);
+		for(Following f: res2)
+			if(!DB.deleteOne(f).isOK())
+				return error(BAD_REQUEST);
 
-			// delete follows
-			var query2 = format("DELETE Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
-			cosmosContainer.queryItems(query2, null, Following.class);
+		// delete likes
+		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
+		var res3 = DB.sql(query3, Likes.class);
+		for(Likes l: res3)
+			if(!DB.deleteOne(l).isOK())
+				return error(BAD_REQUEST);
 
-			// delete likes
-			var query3 = format("DELETE Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
-			cosmosContainer.queryItems(query3, null, Likes.class);
-
-		});
+		return Result.ok();
 	}
 
 }

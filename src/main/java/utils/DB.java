@@ -6,7 +6,9 @@ import java.util.function.Function;
 
 import com.azure.cosmos.CosmosContainer;
 
+import org.hsqldb.lib.CharArrayWriter;
 import tukano.api.Result;
+import tukano.impl.data.Likes;
 
 public class DB {
 
@@ -34,11 +36,11 @@ public class DB {
 		return Result.errorOrValue(CosmosDBLayer.getInstance().insertOne(obj), obj);
 	}
 
-	public static <T> Result<T> transaction(Consumer<CosmosContainer> c) {
+	/*public static <T> Result<T> transaction(Consumer<CosmosContainer> c) {
 		return CosmosDBLayer.getInstance().execute(c::accept);
 	}
 
 	public static <T> Result<T> transaction(Function<CosmosContainer, Result<T>> func) {
 		return CosmosDBLayer.getInstance().execute(func);
-	}
+	}*/
 }
