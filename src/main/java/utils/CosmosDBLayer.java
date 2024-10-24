@@ -25,14 +25,10 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
 public class CosmosDBLayer {
-    private static final Map<Class<?>, String> containerMap = new HashMap<>();
-
-    static {
-        containerMap.put(User.class, "users");
-        containerMap.put(Short.class, "shorts");
-        containerMap.put(Following.class, "followers");
-        containerMap.put(Likes.class, "likes");
-    }
+    private static final String CONNECTION_URL = "https://cosmos70373.documents.azure.com:443/"; // replace with your own
+    private static final String DB_KEY = "ub3hRRVeMSFDD1zsIfSUfa77xfUqMFGYiG13iLv00wUDgFXWJhQlXFbFBj09TfCP76YzbNOGY3iPACDbogECXQ==";
+    private static final String DB_NAME = "cosmosdb70373";
+    private static final String CONTAINER = "users";
 
     private static CosmosDBLayer instance;
 
@@ -40,11 +36,15 @@ public class CosmosDBLayer {
         if (instance != null)
             return instance;
 
+        System.out.println(Props.get("COSMOSDB_URL", ""));
+
         CosmosClient client = new CosmosClientBuilder()
-                .endpoint(Props.get("COSMOSDB_URL", ""))
-                .key(Props.get("COSMOSDB_KEY", ""))
-                .directMode()
-                // .gatewayMode()
+                //.endpoint(Props.get("COSMOSDB_URL", ""))
+                //.key(Props.get("COSMOSDB_KEY", ""))
+                .endpoint(CONNECTION_URL)
+                .key(DB_KEY)
+                // .directMode()
+                .gatewayMode()
                 // replace by .directMode() for better performance
                 .consistencyLevel(ConsistencyLevel.SESSION)
                 .connectionSharingAcrossClientsEnabled(true)
@@ -56,7 +56,7 @@ public class CosmosDBLayer {
 
     private final CosmosClient client;
     private CosmosDatabase db;
-    private final Map<String, CosmosContainer> containers = new HashMap<>();
+    private CosmosContainer container;
 
     public CosmosDBLayer(CosmosClient client) {
         this.client = client;
@@ -65,19 +65,9 @@ public class CosmosDBLayer {
     private synchronized void init() {
         if (db != null)
             return;
-        db = client.getDatabase(Props.get("COSMOSDB_DATABASE", ""));
-        for (String containerName : containerMap.values()) {
-            containers.put(containerName, db.getContainer(containerName));
-        }
-    }
-
-    private CosmosContainer getContainer(Class<?> clazz) {
-        init();
-        String containerName = containerMap.get(clazz);
-        if (containerName == null) {
-            throw new IllegalArgumentException("No container found for class: " + clazz.getName());
-        }
-        return containers.get(containerName);
+        db = client.getDatabase(DB_NAME);
+        //container = db.getContainer(Props.get("COSMOSDB_DATABASE", ""));
+        container = db.getContainer(CONTAINER);
     }
 
     public void close() {
@@ -85,38 +75,38 @@ public class CosmosDBLayer {
     }
 
     public <T> Result<T> getOne(String id, Class<T> clazz) {
-        return tryCatch(() -> getContainer(clazz).readItem(id, new PartitionKey(id), clazz).getItem());
+        return tryCatch(() -> container.readItem(id, new PartitionKey(id), clazz).getItem());
     }
 
     public <T> Result<?> deleteOne(T obj) {
-        return tryCatch(() -> getContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions()).getItem());
+        return tryCatch(() -> container.deleteItem(obj, new CosmosItemRequestOptions()).getItem());
     }
 
     public <T> Result<T> updateOne(T obj) {
-        return tryCatch(() -> getContainer(obj.getClass()).upsertItem(obj).getItem());
+        return tryCatch(() -> container.upsertItem(obj).getItem());
     }
 
     public <T> Result<T> insertOne(T obj) {
-        return tryCatch(() -> getContainer(obj.getClass()).createItem(obj).getItem());
+        return tryCatch(() -> container.createItem(obj).getItem());
     }
 
     public <T> Result<List<T>> query(Class<T> clazz, String queryStr) {
         return tryCatch(() -> {
-            var res = getContainer(clazz).queryItems(queryStr, new CosmosQueryRequestOptions(), clazz);
+            var res = container.queryItems(queryStr, new CosmosQueryRequestOptions(), clazz);
             return res.stream().toList();
         });
     }
 
-    public <T> Result<T> execute(Consumer<CosmosContainer> proc, Class<T> clazz) {
+    public <T> Result<T> execute(Consumer<CosmosContainer> proc) {
         return execute((cosmosContainer) -> {
             proc.accept(cosmosContainer);
             return Result.ok();
-        }, clazz);
+        });
     }
 
-    public <T> Result<T> execute(Function<CosmosContainer, Result<T>> func, Class<T> clazz) {
+    public <T> Result<T> execute(Function<CosmosContainer, Result<T>> func) {
         try {
-            return func.apply(getContainer(clazz));
+            return func.apply(container);
         } catch (CosmosException ex) {
             return Result.error(ErrorCode.CONFLICT);
         } /*catch (Exception e) {

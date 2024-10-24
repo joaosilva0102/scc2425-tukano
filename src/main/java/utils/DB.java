@@ -34,11 +34,11 @@ public class DB {
 		return Result.errorOrValue(CosmosDBLayer.getInstance().insertOne(obj), obj);
 	}
 
-	public static <T> Result<T> transaction(Consumer<CosmosContainer> c, Class<T> clazz) {
-		return CosmosDBLayer.getInstance().execute(c::accept, clazz);
+	public static <T> Result<T> transaction(Consumer<CosmosContainer> c) {
+		return CosmosDBLayer.getInstance().execute(c::accept);
 	}
 
-	public static <T> Result<T> transaction(Function<CosmosContainer, Result<T>> func, Class<T> clazz) {
-		return CosmosDBLayer.getInstance().execute(func, clazz);
+	public static <T> Result<T> transaction(Function<CosmosContainer, Result<T>> func) {
+		return CosmosDBLayer.getInstance().execute(func);
 	}
 }

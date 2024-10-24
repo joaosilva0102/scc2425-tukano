@@ -36,10 +36,12 @@ public class JavaUsers implements Users {
 	public Result<String> createUser(User user) {
 		Log.info(() -> format("createUser : %s\n", user));
 
-		if (badUserInfo(user))
+		if (badUserInfo(user)) {
+			System.out.println(user);
 			return error(BAD_REQUEST);
+		}
 
-		return errorOrValue(DB.insertOne(user), user.getId());
+		return errorOrValue(DB.insertOne(user), user.getUserId());
 	}
 
 	@Override
@@ -104,10 +106,10 @@ public class JavaUsers implements Users {
 	}
 
 	private boolean badUserInfo(User user) {
-		return (user.id() == null || user.pwd() == null || user.displayName() == null || user.email() == null);
+		return (user.userId() == null || user.pwd() == null || user.displayName() == null || user.email() == null);
 	}
 
 	private boolean badUpdateUserInfo(String userId, String pwd, User info) {
-		return (userId == null || pwd == null || info.getId() != null && !userId.equals(info.getId()));
+		return (userId == null || pwd == null || info.getUserId() != null && !userId.equals(info.getUserId()));
 	}
 }

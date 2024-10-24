@@ -8,6 +8,7 @@ public class User {
 	
 	@Id
 	private String id;
+	private String userId;
 	private String pwd;
 	private String email;	
 	private String displayName;
@@ -16,6 +17,7 @@ public class User {
 	
 	public User(String userId, String pwd, String email, String displayName) {
 		this.id = userId;
+		this.userId = userId;
 		this.pwd = pwd;
 		this.email = email;
 		this.displayName = displayName;
@@ -24,8 +26,15 @@ public class User {
 	public String getId() {
 		return id;
 	}
-	public void setId(String userId) {
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getUserId() {
+		return userId;
+	}
+	public void setUserId(String userId) {
 		this.id = userId;
+		this.userId = userId;
 	}
 	public String getPwd() {
 		return pwd;
@@ -48,6 +57,8 @@ public class User {
 
 	public String id() { return id; }
 
+	public String userId() { return userId; }
+
 	public String pwd() {
 		return pwd;
 	}
@@ -62,15 +73,15 @@ public class User {
 	
 	@Override
 	public String toString() {
-		return "User [id=" + id + ", pwd=" + pwd + ", email=" + email + ", displayName=" + displayName + "]";
+		return "User [id=" + id + ", userId=" + userId + " pwd=" + pwd + ", email=" + email + ", displayName=" + displayName + "]";
 	}
 	
 	public User copyWithoutPassword() {
-		return new User(id, "", email, displayName);
+		return new User(userId, "", email, displayName);
 	}
 	
 	public User updateFrom( User other ) {
-		return new User( id,
+		return new User( userId,
 				other.pwd != null ? other.pwd : pwd,
 				other.email != null ? other.email : email, 
 				other.displayName != null ? other.displayName : displayName);
