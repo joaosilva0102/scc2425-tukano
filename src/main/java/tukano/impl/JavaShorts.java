@@ -10,6 +10,7 @@ import static tukano.api.Result.ErrorCode.BAD_REQUEST;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
 import static utils.DB.getOne;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -23,6 +24,7 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
+import utils.PostgreSQL.DbUtil;
 
 public class JavaShorts implements Shorts {
 
@@ -36,7 +38,9 @@ public class JavaShorts implements Shorts {
 		return instance;
 	}
 	
-	private JavaShorts() {}
+	private JavaShorts() {
+
+	}
 	
 	
 	@Override
