@@ -10,6 +10,7 @@ import static tukano.api.Result.ErrorCode.BAD_REQUEST;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
 import static utils.DB.getOne;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -24,30 +25,31 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
+import utils.PostgreSQL.DbUtil;
 
 public class JavaShorts implements Shorts {
 
 	private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
-
+	
 	private static Shorts instance;
-
+	
 	synchronized public static Shorts getInstance() {
-		if (instance == null)
+		if( instance == null )
 			instance = new JavaShorts();
 		return instance;
 	}
-
-	private JavaShorts() {
-	}
-
+	
+	private JavaShorts() {}
+	
+	
 	@Override
 	public Result<Short> createShort(String userId, String password) {
 		Log.info(() -> format("createShort : userId = %s, pwd = %s\n", userId, password));
 
-		return errorOrResult(okUser(userId, password), user -> {
-
+		return errorOrResult( okUser(userId, password), user -> {
+			
 			var shortId = format("%s+%s", userId, UUID.randomUUID());
-			var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId);
+			var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId); 
 			var shrt = new Short(shortId, userId, blobUrl);
 
 			return errorOrValue(DB.insertOne(shrt), s -> s.copyWithLikes_And_Token(0));
@@ -58,7 +60,7 @@ public class JavaShorts implements Shorts {
 	public Result<Short> getShort(String shortId) {
 		Log.info(() -> format("getShort : shortId = %s\n", shortId));
 
-		if (shortId == null)
+		if( shortId == null )
 			return error(BAD_REQUEST);
 
 		var query = format("SELECT * FROM Likes l WHERE l.shortId = '%s'", shortId);

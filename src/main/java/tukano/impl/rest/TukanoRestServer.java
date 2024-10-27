@@ -26,7 +26,7 @@ public class TukanoRestServer extends Application {
 	public static final int PORT = 8080;
 
 	public static String serverURI;
-
+			
 	static {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s");
 	}
@@ -39,17 +39,7 @@ public class TukanoRestServer extends Application {
 		Props.load("azurekeys-region.props");
 	}
 
-	@Override
-	public Set<Class<?>> getClasses() {
-		return resources;
-	}
-
-	@Override
-	public Set<Object> getSingletons() {
-		return singletons;
-	}
-
-	/* protected void start() throws Exception {
+	/*protected void start() throws Exception {
 
 		ResourceConfig config = new ResourceConfig();
 
@@ -73,4 +63,14 @@ public class TukanoRestServer extends Application {
 
 		return;
 	}
+
+	/*@Override
+	public Set<Class<?>> getClasses() {
+		return resources;
+	}
+
+	@Override
+	public Set<Object> getSingletons() {
+		return singletons;
+	}*/
 }

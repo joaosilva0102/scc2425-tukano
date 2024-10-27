@@ -9,7 +9,7 @@ public class Following {
 
 	String followee;
 
-	public Following() {}
+    public Following() {}
 
 	public Following(String follower, String followee) {
 		super();
