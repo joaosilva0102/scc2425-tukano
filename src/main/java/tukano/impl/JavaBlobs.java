@@ -59,8 +59,7 @@ public class JavaBlobs implements Blobs {
 //		return storage.read( toPath( blobId ) );
 		return cloudStorage.read( toPath( blobId ) );
 	}
-
-	@Override
+	
 	public Result<Void> downloadToSink(String blobId, Consumer<byte[]> sink, String token) {
 		Log.info(() -> format("downloadToSink : blobId = %s, token = %s\n", blobId, token));
 
@@ -89,7 +88,7 @@ public class JavaBlobs implements Blobs {
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
 
-		return storage.deleteAll( toPath(userId));
+		return cloudStorage.deleteAll( toPath(userId));
 	}
 
 	private boolean validBlobId(String blobId, String token) {

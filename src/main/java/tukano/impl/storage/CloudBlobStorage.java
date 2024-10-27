@@ -13,6 +13,7 @@ import com.azure.storage.blob.models.DownloadRetryOptions;
 import tukano.api.Result;
 import utils.Hash;
 import utils.IO;
+import utils.Props;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -29,14 +30,13 @@ import static tukano.api.Result.ok;
 
 public class CloudBlobStorage implements BlobStorage {
 
-    private final String storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=sto62612northeurope;AccountKey=pYe+UhUDzJXoDsIzBG0SbAt4ic5yGQOwqQpFH0gjlpTDiD6RxiR6+VDUXXMyvEPHWBLJXwQKKAZy+AStoYUDiQ==;EndpointSuffix=core.windows.net";
     private static final String BLOBS_CONTAINER_NAME = "shorts";
     private static final int CHUNK_SIZE = 4096;
     private static BlobContainerClient containerClient;
 
     public CloudBlobStorage() {
         containerClient = new BlobContainerClientBuilder()
-                .connectionString(storageConnectionString)
+                .connectionString(Props.get("BlobStoreConnection", ""))
                 .containerName(BLOBS_CONTAINER_NAME)
                 .buildClient();
     }
@@ -137,7 +137,6 @@ public class CloudBlobStorage implements BlobStorage {
             return error(BAD_REQUEST);
 
         try {
-
             PagedIterable<BlobItem> allBlobs = containerClient.listBlobs();
 
             for (BlobItem blobItem : allBlobs) {

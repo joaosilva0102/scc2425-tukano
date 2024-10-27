@@ -39,32 +39,7 @@ public class TukanoRestServer extends Application {
 		Props.load("azurekeys-region.props");
 	}
 
-	/*protected void start() throws Exception {
-
-		ResourceConfig config = new ResourceConfig();
-
-		config.register(RestBlobsResource.class);
-		config.register(RestUsersResource.class);
-		config.register(RestShortsResource.class);
-
-		JdkHttpServerFactory.createHttpServer(URI.create(serverURI.replace(IP.hostAddress(), INETADDR_ANY)), config);
-
-		Log.info(String.format("Tukano Server ready @ %s\n", serverURI));
-	} */
-
-	public static void main(String[] args) throws Exception {
-		/* Args.use(args);
-
-		Token.setSecret(Args.valueOf("-secret", ""));
-		// Props.load( Args.valueOf("-props", "").split(","));
-
-		new TukanoRestServer().start(); */
-		Props.load("azurekeys-region.props");
-
-		return;
-	}
-
-	/*@Override
+	@Override
 	public Set<Class<?>> getClasses() {
 		return resources;
 	}
@@ -72,5 +47,11 @@ public class TukanoRestServer extends Application {
 	@Override
 	public Set<Object> getSingletons() {
 		return singletons;
-	}*/
+	}
+
+	public static void main(String[] args) throws Exception {
+		Props.load("azurekeys-region.props");
+
+		return;
+	}
 }

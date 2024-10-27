@@ -45,7 +45,7 @@ public class CosmosPostgre<T> {
         }
         insertStatement.executeUpdate();
     }
-    private static Pharmacy readData(Connection connection) throws SQLException {
+    /*private static Pharmacy readData(Connection connection) throws SQLException {
         log.info("Read data");
         PreparedStatement readStatement = connection.prepareStatement("SELECT * FROM Pharmacy;");
         ResultSet resultSet = readStatement.executeQuery();
@@ -61,7 +61,5 @@ public class CosmosPostgre<T> {
         todo.setzip_code(resultSet.getInt("zip_code"));
         log.info("Data read from the database: " + todo.toString());
         return todo;
-    }
-
-
+    }*/
 }

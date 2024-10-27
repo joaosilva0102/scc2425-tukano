@@ -83,7 +83,10 @@ public class JavaShorts implements Shorts {
 				for (Likes like : itemsToDelete)
 					DB.deleteOne(like);
 
-				JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
+				var res = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+				if(!res.isOK()) {
+					return res;
+				}
 
 				return Result.ok();
 			});

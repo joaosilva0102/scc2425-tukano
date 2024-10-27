@@ -1,4 +1,4 @@
-package tukano.clients.rest;
+package main.test.tukano.clients.rest;
 
 
 import static tukano.api.Result.error;
@@ -85,9 +85,9 @@ public class RestClient {
 			var status = r.getStatusInfo().toEnum();
 			if (status == Status.OK && r.hasEntity())
 				return ok(r.readEntity(entityType));
-			else 
-				if( status == Status.NO_CONTENT) return ok();
-			
+			else
+			if( status == Status.NO_CONTENT) return ok();
+
 			return error(getErrorCodeFrom(status.getStatusCode()));
 		} finally {
 			r.close();
@@ -99,9 +99,9 @@ public class RestClient {
 			var status = r.getStatusInfo().toEnum();
 			if (status == Status.OK && r.hasEntity())
 				return ok(r.readEntity(entityType));
-			else 
+			else
 				if( status == Status.NO_CONTENT) return ok();
-			
+
 			return error(getErrorCodeFrom(status.getStatusCode()));
 		} finally {
 			r.close();

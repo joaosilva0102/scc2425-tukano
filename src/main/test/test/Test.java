@@ -1,4 +1,4 @@
-package test;
+package main.test.test;
 
 import java.io.File;
 import java.net.URI;
@@ -7,9 +7,9 @@ import java.util.Random;
 
 import tukano.api.Result;
 import tukano.api.User;
-import tukano.clients.rest.RestBlobsClient;
-import tukano.clients.rest.RestShortsClient;
-import tukano.clients.rest.RestUsersClient;
+import main.test.tukano.clients.rest.RestBlobsClient;
+import main.test.tukano.clients.rest.RestShortsClient;
+import main.test.tukano.clients.rest.RestUsersClient;
 import tukano.impl.rest.TukanoRestServer;
 
 public class Test {
@@ -83,13 +83,13 @@ public class Test {
 		show(shorts.getFeed("liskov", "12345"));
 
 		show(shorts.getShort( s2id ));
-//
-//		
-//		blobs.forEach( b -> {
-//			var r = b.download(blobId);
-//			System.out.println( Hex.of(Hash.sha256( bytes )) + "-->" + Hex.of(Hash.sha256( r.value() )));
-//			
-//		});
+
+
+		/*blobs.forEach( b -> {
+			var r = b.download(blobId);
+			System.out.println( Hex.of(Hash.sha256( bytes )) + "-->" + Hex.of(Hash.sha256( r.value() )));
+
+		});*/
 		
 		 show(users.deleteUser("wales", "12345"));
 

@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 final public class JSON {
 	final static ObjectMapper mapper = new ObjectMapper();
 
-	synchronized public static final String encode(Object obj) {
+	synchronized public static String encode(Object obj) {
 		try {
 			return mapper.writeValueAsString(obj);
 		} catch (JsonProcessingException e) {
@@ -16,20 +16,18 @@ final public class JSON {
 		}
 	}
 
-	synchronized public static final <T> T decode(String json, Class<T> classOf) {
+	synchronized public static <T> T decode(String json, Class<T> classOf) {
 		try {
-			var res = mapper.readValue(json, classOf);
-			return res;
+			return mapper.readValue(json, classOf);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
 
-	synchronized public static final <T> T decode(String json, TypeReference<T> typeOf) {
+	synchronized public static <T> T decode(String json, TypeReference<T> typeOf) {
 		try {
-			var res = mapper.readValue(json, typeOf);
-			return res;
+			return mapper.readValue(json, typeOf);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 			return null;
