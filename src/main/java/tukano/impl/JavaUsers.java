@@ -36,10 +36,8 @@ public class JavaUsers implements Users {
 	public Result<String> createUser(User user) {
 		Log.info(() -> format("createUser : %s\n", user));
 
-		if (badUserInfo(user)) {
-			System.out.println(user);
+		if (badUserInfo(user))
 			return error(BAD_REQUEST);
-		}
 
 		return errorOrValue(DB.insertOne(user), user.getUserId());
 	}

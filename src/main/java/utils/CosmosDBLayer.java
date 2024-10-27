@@ -20,9 +20,7 @@ import java.util.function.Supplier;
 
 public class CosmosDBLayer {
     private static final Map<Class<?>, String> containerMap = new HashMap<>();
-    private static final String CONNECTION_URL = "https://cosmos70373.documents.azure.com:443/"; // replace with your own
-    private static final String DB_KEY = "ub3hRRVeMSFDD1zsIfSUfa77xfUqMFGYiG13iLv00wUDgFXWJhQlXFbFBj09TfCP76YzbNOGY3iPACDbogECXQ==";
-    private static final String DB_NAME = "cosmosdb70373";
+
     static {
         containerMap.put(User.class, "users");
         containerMap.put(Short.class, "shorts");
@@ -37,10 +35,10 @@ public class CosmosDBLayer {
             return instance;
 
         CosmosClient client = new CosmosClientBuilder()
-                .endpoint(CONNECTION_URL/*Props.get("COSMOSDB_URL", "")*/)
-                .key(DB_KEY/*Props.get("COSMOSDB_KEY", "")*/)
-                // .directMode()
-                .gatewayMode()
+                .endpoint(Props.get("COSMOSDB_URL", ""))
+                .key(Props.get("COSMOSDB_KEY", ""))
+                .directMode()
+                // .gatewayMode()
                 // replace by .directMode() for better performance
                 .consistencyLevel(ConsistencyLevel.SESSION)
                 .connectionSharingAcrossClientsEnabled(true)
@@ -61,7 +59,7 @@ public class CosmosDBLayer {
     private synchronized void init() {
         if (db != null)
             return;
-        db = client.getDatabase(DB_NAME/*Props.get("COSMOSDB_DATABASE", "")*/);
+        db = client.getDatabase(Props.get("COSMOSDB_DATABASE", ""));
         for (String containerName : containerMap.values()) {
             containers.put(containerName, db.getContainer(containerName));
         }

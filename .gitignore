@@ -2,3 +2,4 @@
 .settings
 .vscode
 /target
+/src/main/resources/azurekeys-region.props
