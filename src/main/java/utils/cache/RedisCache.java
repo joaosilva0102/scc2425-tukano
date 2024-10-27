@@ -2,10 +2,9 @@ package utils.cache;
 
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import utils.Props;
 
 public class RedisCache {
-	private static final String RedisHostname = "";
-	private static final String RedisKey = "";
 	private static final int REDIS_PORT = 6380;
 	private static final int REDIS_TIMEOUT = 1000;
 	private static final boolean Redis_USE_TLS = true;
@@ -25,7 +24,8 @@ public class RedisCache {
 		poolConfig.setTestWhileIdle(true);
 		poolConfig.setNumTestsPerEvictionRun(3);
 		poolConfig.setBlockWhenExhausted(true);
-		instance = new JedisPool(poolConfig, RedisHostname, REDIS_PORT, REDIS_TIMEOUT, RedisKey, Redis_USE_TLS);
+		instance = new JedisPool(poolConfig, Props.get("REDIS_HOSTNAME", ""),
+				REDIS_PORT, REDIS_TIMEOUT, Props.get("REDIS_KEY", ""), Redis_USE_TLS);
 		return instance;
 	}
 }
