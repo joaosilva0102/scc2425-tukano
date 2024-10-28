@@ -12,13 +12,13 @@ import java.util.stream.Collectors;
 
 public class CosmosPostgre<T> {
     private static final Logger log = Logger.getLogger(CosmosPostgre.class.getName());
-    private Connection connection = null;
+    private final Connection connection;
 
     private CosmosPostgre() throws SQLException {
         this.connection = DbUtil.getDataSource().getConnection();
     }
 
-    public <T> void insertData(T entity, String sqlStatement, Connection connection) throws SQLException, IllegalAccessException {
+    public <T> void insertData(T entity, String sqlStatement) throws SQLException, IllegalAccessException {
         PreparedStatement insertStatement = connection.prepareStatement(sqlStatement);
         Field[] fields = entity.getClass().getDeclaredFields(); //be careful with the order of things
 
@@ -45,21 +45,15 @@ public class CosmosPostgre<T> {
         }
         insertStatement.executeUpdate();
     }
-    /*private static Pharmacy readData(Connection connection) throws SQLException {
+
+    public <T> ResultSet readData(String sqlStatement) throws SQLException {
         log.info("Read data");
-        PreparedStatement readStatement = connection.prepareStatement("SELECT * FROM Pharmacy;");
+        PreparedStatement readStatement = connection.prepareStatement(sqlStatement);
         ResultSet resultSet = readStatement.executeQuery();
         if (!resultSet.next()) {
             log.info("There is no data in the database!");
             return null;
         }
-        Pharmacy todo = new Pharmacy();
-        todo.setpharmacy_id(resultSet.getInt("pharmacy_id"));
-        todo.setpharmacy_name(resultSet.getString("pharmacy_name"));
-        todo.setcity(resultSet.getString("city"));
-        todo.setstate(resultSet.getString("state"));
-        todo.setzip_code(resultSet.getInt("zip_code"));
-        log.info("Data read from the database: " + todo.toString());
-        return todo;
-    }*/
+        return resultSet;
+    }
 }

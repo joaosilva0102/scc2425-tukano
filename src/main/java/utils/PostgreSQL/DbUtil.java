@@ -19,7 +19,7 @@ public class DbUtil {
     static {
         try {
             properties = new Properties();
-            properties.load(new FileInputStream("src/main/java/utils/PostgreSQL/application.properties"));
+            properties.load(new FileInputStream("src/main/resources/application.properties"));
 
             datasource = new HikariDataSource();
             datasource.setDriverClassName(properties.getProperty(DB_DRIVER_CLASS ));
