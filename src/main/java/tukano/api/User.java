@@ -1,8 +1,7 @@
 package tukano.api;
 
-public class User {
+public class User extends Entity{
 	
-	private String id;
 	private String userId;
 	private String pwd;
 	private String email;	
@@ -11,6 +10,7 @@ public class User {
 	public User() {}
 	
 	public User(String userId, String pwd, String email, String displayName) {
+		super();
 		this.id = userId;
 		this.userId = userId;
 		this.pwd = pwd;
@@ -18,12 +18,6 @@ public class User {
 		this.displayName = displayName;
 	}
 
-	public String getId() {
-		return id;
-	}
-	public void setId(String id) {
-		this.id = id;
-	}
 	public String getUserId() {
 		return userId;
 	}

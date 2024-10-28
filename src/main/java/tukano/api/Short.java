@@ -11,9 +11,8 @@ import tukano.impl.Token;
  * A short is timestamped when it is created.
  *
  */
-public class Short {
+public class Short extends Entity {
 	
-	String id;
 	String ownerId;
 	String blobUrl;
 	long timestamp;
@@ -33,10 +32,6 @@ public class Short {
 	public Short(String shortId, String ownerId, String blobUrl) {
 		this( shortId, ownerId, blobUrl, System.currentTimeMillis(), 0);
 	}
-
-	public String getId() { return id; }
-
-	public void setId(String id) { this.id = id; }
 	
 	public String getShortId() {
 		return id;
