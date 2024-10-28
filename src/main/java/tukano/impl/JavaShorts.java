@@ -52,7 +52,10 @@ public class JavaShorts implements Shorts {
 			var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId); 
 			var shrt = new Short(shortId, userId, blobUrl);
 
-			return errorOrValue(DB.insertOne(shrt), s -> s.copyWithLikes_And_Token(0));
+			return errorOrValue(DB.insertOne(shrt), s -> {
+				Cache.insertIntoCache("short", shortId, s);
+				return s.copyWithLikes_And_Token(0);
+			});
 		});
 	}
 
@@ -63,9 +66,12 @@ public class JavaShorts implements Shorts {
 		if( shortId == null )
 			return error(BAD_REQUEST);
 
-		var query = format("SELECT * FROM Likes l WHERE l.shortId = '%s'", shortId);
+		Result<Short> cacheRes = Cache.getFromCache("short", shortId, Short.class);
+		// TODO Update cache
+
+		var query = format("SELECT * FROM Likes l WHERE l.shortId = '%s'", shortId); // TODO Cache likes (?) Maybe create Az Function to update likes
 		var likes = DB.sql(query, Likes.class).size();
-		return errorOrValue(getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
+		return errorOrValue(cacheRes.isOK()? cacheRes: DB.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
 	}
 
 	@Override
@@ -76,6 +82,7 @@ public class JavaShorts implements Shorts {
 
 			return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
 				DB.deleteOne(shrt);
+				Cache.removeFromCache("short", shortId);
 
 				var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
 				var itemsToDelete = DB.sql(query, Likes.class);

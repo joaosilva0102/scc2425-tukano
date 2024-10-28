@@ -1,8 +1,7 @@
-package utils.cache;
+package utils;
 
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import utils.Props;
 
 public class RedisCache {
 	private static final int REDIS_PORT = 6380;

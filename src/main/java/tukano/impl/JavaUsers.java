@@ -15,12 +15,10 @@ import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
 import utils.DB;
-import utils.JSON;
-import utils.cache.RedisCache;
 
 public class JavaUsers implements Users {
 
-	private static Logger Log = Logger.getLogger(JavaUsers.class.getName());
+	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
 	private static Users instance;
 
@@ -40,7 +38,7 @@ public class JavaUsers implements Users {
 		if (badUserInfo(user))
 			return error(BAD_REQUEST);
 
-		insertUserCache(user);
+		Cache.insertIntoCache("user", user.getUserId(), user);
 
 		return errorOrValue(DB.insertOne(user), user.getUserId());
 	}
@@ -52,10 +50,11 @@ public class JavaUsers implements Users {
 		if (userId == null)
 			return error(BAD_REQUEST);
 
-		Result<User> user = checkCache(userId);
+		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if (!user.isOK()) {
 			user = DB.getOne(userId, User.class);
-			if(user.isOK()) insertUserCache(user.value());
+			if(user.isOK()) Cache.insertIntoCache("user",
+					user.value().getUserId(), user.value());
 		}
 
 		return validatedUserOrError(user, pwd);
@@ -68,13 +67,13 @@ public class JavaUsers implements Users {
 		if (badUpdateUserInfo(userId, pwd, other))
 			return error(BAD_REQUEST);
 
-		Result<User> user = checkCache(userId);
+		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if(!user.isOK())
 			user = DB.getOne(userId, User.class);
 
 		return errorOrResult(validatedUserOrError(user, pwd),
 				usr -> {
-					if(!insertUserCache(other).isOK())
+					if(!Cache.insertIntoCache("user", userId, other).isOK())
 						return error(BAD_REQUEST);
 					return DB.updateOne(usr.updateFrom(other));
 				});
@@ -88,12 +87,12 @@ public class JavaUsers implements Users {
 		if (userId == null || pwd == null)
 			return error(BAD_REQUEST);
 
-		Result<User> user = checkCache(userId);
+		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if (!user.isOK()) user = DB.getOne(userId, User.class);
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
 
-			if(!removeCachedUser(userId).isOK())
+			if(!Cache.removeFromCache("user", userId).isOK())
 				return error(BAD_REQUEST);
 
 			// Delete user shorts and related info asynchronously in a separate thread
@@ -132,36 +131,5 @@ public class JavaUsers implements Users {
 
 	private boolean badUpdateUserInfo(String userId, String pwd, User info) {
 		return (userId == null || pwd == null || info.getUserId() != null && !userId.equals(info.getUserId()));
-	}
-
-	private Result<User> checkCache(String userId) {
-		try (var jedis = RedisCache.getCachePool().getResource()) {
-			var key = "user:" + userId;
-			var value = jedis.get(key);
-			if(value != null) {
-				Log.info("Retrieved user from cache");
-				return ok(JSON.decode(value, User.class));
-			} else
-				return error(NOT_FOUND);
-		}
-	}
-
-	private Result<User> insertUserCache(User user) {
-		try (var jedis = RedisCache.getCachePool().getResource()) {
-			var key = "user:" + user.getUserId();
-			var value = JSON.encode(user);
-			jedis.set(key, value);
-			Log.info("Inserted user into cache");
-			return ok(user);
-		}
-	}
-
-	private Result<Void> removeCachedUser(String userId) {
-		try (var jedis = RedisCache.getCachePool().getResource()) {
-			var key = "user:" + userId;
-			jedis.del(key);
-			Log.info("Removed user from cache");
-			return ok();
-		}
 	}
 }
