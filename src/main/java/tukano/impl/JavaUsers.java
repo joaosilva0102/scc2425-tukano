@@ -7,6 +7,7 @@ import static tukano.api.Result.errorOrResult;
 import static tukano.api.Result.errorOrValue;
 import static tukano.api.Result.ok;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -15,12 +16,14 @@ import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
 import utils.DB;
+import utils.PostgreSQL.CosmosPostgresDB;
 
 public class JavaUsers implements Users {
 
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
 	private static Users instance;
+	private boolean sql = false;
 
 	synchronized public static Users getInstance() {
 		if (instance == null)
@@ -52,11 +55,18 @@ public class JavaUsers implements Users {
 
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if (!user.isOK()) {
-			user = DB.getOne(userId, User.class);
+			if(sql)
+				user = DB.getOne(userId, User.class);
+			else {
+                try {
+                    user = CosmosPostgresDB.getOne(userId, User.class);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
 			if(user.isOK()) Cache.insertIntoCache("user",
 					user.value().getUserId(), user.value());
 		}
-
 		return validatedUserOrError(user, pwd);
 	}
 
@@ -68,9 +78,17 @@ public class JavaUsers implements Users {
 			return error(BAD_REQUEST);
 
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
-		if(!user.isOK())
-			user = DB.getOne(userId, User.class);
-
+		if(!user.isOK()) {
+			if(sql)
+				user = DB.updateOne(other); //changed from getOne to updatOne
+			else {
+                try {
+                    user = CosmosPostgresDB.updateOne(other);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+		}
 		return errorOrResult(validatedUserOrError(user, pwd),
 				usr -> {
 					if(!Cache.insertIntoCache("user", userId, other).isOK())
@@ -88,7 +106,12 @@ public class JavaUsers implements Users {
 			return error(BAD_REQUEST);
 
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
-		if (!user.isOK()) user = DB.getOne(userId, User.class);
+		if (!user.isOK()) {
+			if(sql)
+				user = DB.getOne(userId, User.class);
+			else
+				
+		}
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
 
