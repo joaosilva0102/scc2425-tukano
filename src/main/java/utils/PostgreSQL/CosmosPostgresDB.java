@@ -102,7 +102,7 @@ public class CosmosPostgresDB<T> {
         return Result.ok(/* TODO */);
     }
 
-    public static <T> Result<List<T>> query(Class<T> clazz, String queryStr) throws SQLException {
+    public static <T> List<T> query(Class<T> clazz, String queryStr) throws SQLException {
         log.info("Querying data");
         PreparedStatement queryStatement = connection.prepareStatement(queryStr);
         List<T> items = new ArrayList<>();
@@ -110,7 +110,7 @@ public class CosmosPostgresDB<T> {
         try (ResultSet rs = queryStatement.executeQuery()) {
             while (rs.next()) items.add(rs.unwrap(clazz)); // TODO Probably wrong, not tested
         }
-        return Result.ok(items);
+        return items;
     }
 
     <T> Result<T> tryCatch(Supplier<T> supplierFunc) {

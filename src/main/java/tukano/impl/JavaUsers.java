@@ -23,7 +23,7 @@ public class JavaUsers implements Users {
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
 	private static Users instance;
-	private boolean sql = false;
+	private boolean nosql = true;
 
 	synchronized public static Users getInstance() {
 		if (instance == null)
@@ -55,7 +55,7 @@ public class JavaUsers implements Users {
 
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if (!user.isOK()) {
-			if(sql)
+			if(nosql)
 				user = DB.getOne(userId, User.class);
 			else {
                 try {
@@ -79,7 +79,7 @@ public class JavaUsers implements Users {
 
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if(!user.isOK()) {
-			if(sql)
+			if(nosql)
 				user = DB.updateOne(other); //changed from getOne to updatOne
 			else {
                 try {
@@ -97,7 +97,7 @@ public class JavaUsers implements Users {
 				});
 	}
 
-	@SuppressWarnings("unchecked")
+
 	@Override
 	public Result<User> deleteUser(String userId, String pwd) {
 		Log.info(() -> format("deleteUser : userId = %s, pwd = %s\n", userId, pwd));
@@ -107,10 +107,15 @@ public class JavaUsers implements Users {
 
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if (!user.isOK()) {
-			if(sql)
+			if(nosql)
 				user = DB.getOne(userId, User.class);
-			else
-				
+			else {
+                try {
+                    user = CosmosPostgresDB.getOne(userId, User.class);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
 		}
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
@@ -124,7 +129,15 @@ public class JavaUsers implements Users {
 				JavaBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
 			}).start();
 
-			return (Result<User>) DB.deleteOne(usr) ;
+			if(nosql)
+				return (Result<User>) DB.deleteOne(usr);
+			else{
+                try {
+                    return (Result<User>) CosmosPostgresDB.deleteOne(usr);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
 		});
 	}
 
@@ -133,11 +146,20 @@ public class JavaUsers implements Users {
 		Log.info(() -> format("searchUsers : patterns = %s\n", pattern));
 
 		var query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
-		var hits = DB.sql(query, User.class)
-				.stream()
-				.map(User::copyWithoutPassword)
-				.toList();
-
+		List<User> hits;
+		if(nosql) {
+			hits = DB.sql(query, User.class)
+					.stream()
+					.map(User::copyWithoutPassword)
+					.toList();
+		}
+		else{
+            try {
+                hits = CosmosPostgresDB.query(User.class, query);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
 		return ok(hits);
 	}
 
