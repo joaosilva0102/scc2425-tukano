@@ -11,11 +11,14 @@ import static tukano.api.Result.ErrorCode.FORBIDDEN;
 import static utils.DB.getOne;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.hsqldb.server.HsqlSocketRequestHandler;
 import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.api.Short;
@@ -25,208 +28,376 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
+import utils.PostgreSQL.CosmosPostgresDB;
 import utils.PostgreSQL.DbUtil;
 
 public class JavaShorts implements Shorts {
 
-	private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
-	
-	private static Shorts instance;
-	
-	synchronized public static Shorts getInstance() {
-		if( instance == null )
-			instance = new JavaShorts();
-		return instance;
-	}
-	
-	private JavaShorts() {}
-	
-	
-	@Override
-	public Result<Short> createShort(String userId, String password) {
-		Log.info(() -> format("createShort : userId = %s, pwd = %s\n", userId, password));
+    private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
 
-		return errorOrResult( okUser(userId, password), user -> {
-			
-			var shortId = format("%s+%s", userId, UUID.randomUUID());
-			var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId); 
-			var shrt = new Short(shortId, userId, blobUrl);
+    private static Shorts instance;
+    private boolean nosql = true;
 
-			return errorOrValue(DB.insertOne(shrt), s -> {
-				Cache.insertIntoCache("short", shortId, s);
-				return s.copyWithLikes_And_Token(0);
-			});
-		});
-	}
+    synchronized public static Shorts getInstance() {
+        if (instance == null)
+            instance = new JavaShorts();
+        return instance;
+    }
 
-	@Override
-	public Result<Short> getShort(String shortId) {
-		Log.info(() -> format("getShort : shortId = %s\n", shortId));
+    private JavaShorts() {
+    }
 
-		if( shortId == null )
-			return error(BAD_REQUEST);
 
-		Result<Short> cacheRes = Cache.getFromCache("short", shortId, Short.class);
-		// TODO Update cache
+    @Override
+    public Result<Short> createShort(String userId, String password) {
+        Log.info(() -> format("createShort : userId = %s, pwd = %s\n", userId, password));
 
-		var query = format("SELECT * FROM Likes l WHERE l.shortId = '%s'", shortId); // TODO Cache likes (?) Maybe create Az Function to update likes
-		var likes = DB.sql(query, Likes.class).size();
-		return errorOrValue(cacheRes.isOK()? cacheRes: DB.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
-	}
+        return errorOrResult(okUser(userId, password), user -> {
 
-	@Override
-	public Result<Void> deleteShort(String shortId, String password) {
-		Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
+            var shortId = format("%s+%s", userId, UUID.randomUUID());
+            var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId);
+            var shrt = new Short(shortId, userId, blobUrl);
 
-		return errorOrResult(getShort(shortId), shrt -> {
+            if (nosql) {
+                return errorOrValue(
+                        DB.insertOne(shrt), s -> {
+                            Cache.insertIntoCache("short", shortId, s);
+                            //JavaBlobs.getInstance().upload(blobUrl,  , Token.get(shortId));
+                            return s.copyWithLikes_And_Token(0);
+                        });
+            } else {
+                try {
+                    return errorOrValue(
+                            CosmosPostgresDB.insertOne(shrt), s -> {
+                                Cache.insertIntoCache("short", shortId, s);
+                                return s.copyWithLikes_And_Token(0);
+                            });
+                } catch (SQLException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
 
-			return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
-				DB.deleteOne(shrt);
-				Cache.removeFromCache("short", shortId);
+    @Override
+    public Result<Short> getShort(String shortId) {
+        Log.info(() -> format("getShort : shortId = %s\n", shortId));
 
-				var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
-				var itemsToDelete = DB.sql(query, Likes.class);
+        if (shortId == null)
+            return error(BAD_REQUEST);
 
-				for (Likes like : itemsToDelete)
-					DB.deleteOne(like);
+        Result<Short> result = Cache.getFromCache("short", shortId, Short.class);
+        // TODO Update cache
+        // TODO Cache likes (?) Maybe create Az Function to update likes
+        var query = format("SELECT * FROM Likes l WHERE l.shortId = '%s'", shortId);
 
-				var res = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-				if(!res.isOK()) {
-					return res;
-				}
+        var likes = DB.sql(query, Likes.class).size();
 
-				return Result.ok();
-			});
-		});
-	}
+        if (!result.isOK()) {
+                if (nosql)
+                    result = DB.getOne(shortId, Short.class);
+                else {
+                    try {
+                        result = CosmosPostgresDB.getOne(shortId, Short.class);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+//            Log.log(Level.WARNING, "AQUII: " + cacheRes);
+//            return errorOrValue(cacheRes.isOK() ? cacheRes : nosql ? DB.getOne(shortId, Short.class) : CosmosPostgresDB.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
+        return result;
+    }
 
-	@Override
-	public Result<List<String>> getShorts(String userId) {
-		Log.info(() -> format("getShorts : userId = %s\n", userId));
+    @Override
+    public Result<Void> deleteShort(String shortId, String password) {
+        Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
-		var query = format("SELECT s.shortId FROM Short s WHERE s.ownerId = '%s'", userId);
-		return errorOrValue(okUser(userId), DB.sql(query, Short.class)
-				.stream().map(Short::getShortId).collect(Collectors.toList()));
-	}
+        return errorOrResult(getShort(shortId), shrt -> {
 
-	@Override
-	public Result<Void> follow(String userId1, String userId2, boolean isFollowing, String password) {
-		Log.info(() -> format("follow : userId1 = %s, userId2 = %s, isFollowing = %s, pwd = %s\n", userId1, userId2,
-				isFollowing, password));
+            return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
+                Cache.removeFromCache("short", shortId);
+                if(nosql) {
+                     var res = DB.deleteOne(shrt);
+                }
+                else{
+                    try {
+                        CosmosPostgresDB.deleteOne(shrt);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
-		return errorOrResult(okUser(userId1, password), user -> {
-			var f = new Following(userId1, userId2);
-			return errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
-		});
-	}
+                var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
+                List<Likes> itemsToDelete;
 
-	@Override
-	public Result<List<String>> followers(String userId, String password) {
-		Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
+                if (nosql) {
+                    itemsToDelete = DB.sql(query, Likes.class);
+                }
+                else {
+                    try {
+                        itemsToDelete = CosmosPostgresDB.query(Likes.class, query);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
-		var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
-		return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
-				.stream().map(Following::getFollower).collect(Collectors.toList()));
-	}
+                for (Likes like : itemsToDelete) {
+                    if (nosql) {
+                        DB.deleteOne(like);
+                    }
+                    else {
+                        try {
+                            CosmosPostgresDB.deleteOne(like);
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
 
-	@Override
-	public Result<Void> like(String shortId, String userId, boolean isLiked, String password) {
-		Log.info(() -> format("like : shortId = %s, userId = %s, isLiked = %s, pwd = %s\n", shortId, userId, isLiked,
-				password));
+                /*var res = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+                if (!res.isOK()) {
+                    return res;
+                }*/
 
-		return errorOrResult(getShort(shortId), shrt -> {
-			var l = new Likes(userId, shortId, shrt.getOwnerId());
-			return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
-		});
-	}
+                return Result.ok();
+            });
+        });
+    }
 
-	@Override
-	public Result<List<String>> likes(String shortId, String password) {
-		Log.info(() -> format("likes : shortId = %s, pwd = %s\n", shortId, password));
+    @Override
+    public Result<List<String>> getShorts(String userId) {
+        Log.info(() -> format("getShorts : userId = %s\n", userId));
 
-		return errorOrResult(getShort(shortId), shrt -> {
+        var query = format("SELECT s.shortId FROM Short s WHERE s.ownerId = '%s'", userId);
+        if (nosql)
+            return errorOrValue(okUser(userId), DB.sql(query, Short.class)
+                    .stream().map(Short::getShortId).collect(Collectors.toList()));
+        else {
+            try {
+                return errorOrValue(okUser(userId), CosmosPostgresDB.query(Short.class, query)
+                        .stream().map(Short::getShortId).collect(Collectors.toList()));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-			var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
+    @Override
+    public Result<Void> follow(String userId1, String userId2, boolean isFollowing, String password) {
+        Log.info(() -> format("follow : userId1 = %s, userId2 = %s, isFollowing = %s, pwd = %s\n", userId1, userId2,
+                isFollowing, password));
 
-			return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
-					.stream().map(Likes::getUserId).collect(Collectors.toList()));
-		});
-	}
+        return errorOrResult(okUser(userId1, password), user -> {
+            var f = new Following(userId1, userId2);
+            if (nosql)
+                return errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
+            else {
+                try {
+                    return errorOrVoid(okUser(userId2), isFollowing ? CosmosPostgresDB.insertOne(f) : CosmosPostgresDB.deleteOne(f));
+                } catch (SQLException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
 
-	@Override
-	public Result<List<String>> getFeed(String userId, String password) {
-		Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
+    @Override
+    public Result<List<String>> followers(String userId, String password) {
+        Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
 
-		final var QUERY_1_FMT = """
-					SELECT * FROM Following f
-					WHERE f.follower = '%s'
-				""";
+        var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
+        if (nosql)
+            return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
+                    .stream().map(Following::getFollower).collect(Collectors.toList()));
+        else {
+            try {
+                return errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Following.class, query)
+                        .stream().map(Following::getFollower).collect(Collectors.toList()));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-		var result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
-				.stream().map(Following::getFollowee).collect(Collectors.toList()));
+    @Override
+    public Result<Void> like(String shortId, String userId, boolean isLiked, String password) {
+        Log.info(() -> format("like : shortId = %s, userId = %s, isLiked = %s, pwd = %s\n", shortId, userId, isLiked,
+                password));
 
-		if(!result.isOK()) return result;
+        if (nosql) {
+            return errorOrResult(getShort(shortId), shrt -> {
+                var l = new Likes(userId, shortId, shrt.getOwnerId());
+                return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
+            });
+        } else {
+            return errorOrResult(getShort(shortId), shrt -> {
+                var l = new Likes(userId, shortId, shrt.getOwnerId());
+                try {
+                    return errorOrVoid(okUser(userId, password), isLiked ? CosmosPostgresDB.insertOne(l) : CosmosPostgresDB.deleteOne(l));
+                } catch (SQLException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
-		var usersList = result.value();
+        }
 
-		usersList.add(userId);
+    }
 
-		String usersFormated = usersList.stream()
-				.map(id -> "'" + id + "'")
-				.collect(Collectors.joining(", "));
+    @Override
+    public Result<List<String>> likes(String shortId, String password) {
+        Log.info(() -> format("likes : shortId = %s, pwd = %s\n", shortId, password));
 
-		final var QUERY_2_FMT = """
-					SELECT * FROM Short s
-					WHERE s.ownerId IN (%s)
-					ORDER BY s.timestamp DESC
-				""";
+        return errorOrResult(getShort(shortId), shrt -> {
 
-		return errorOrValue(okUser(userId, password), DB.sql(format(QUERY_2_FMT, usersFormated), Short.class)
-				.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
-	}
+            var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
 
-	protected Result<User> okUser(String userId, String pwd) {
-		return JavaUsers.getInstance().getUser(userId, pwd);
-	}
+            if (nosql)
+                return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
+                        .stream().map(Likes::getUserId).collect(Collectors.toList()));
+            else {
+                try {
+                    return errorOrValue(okUser(shrt.getOwnerId(), password), CosmosPostgresDB.query(Likes.class, query)
+                            .stream().map(Likes::getUserId).collect(Collectors.toList()));
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
 
-	private Result<Void> okUser(String userId) {
-		var res = okUser(userId, "");
-		if (res.error() == FORBIDDEN)
-			return ok();
-		else
-			return error(res.error());
-	}
+    @Override
+    public Result<List<String>> getFeed(String userId, String password) {
+        Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-	@Override
-	public Result<Void> deleteAllShorts(String userId, String password, String token) {
-		Log.info(() -> format("deleteAllShorts : userId = %s, password = %s, token = %s\n", userId, password, token));
+        final var QUERY_1_FMT = """
+                	SELECT * FROM Following f
+                	WHERE f.follower = '%s'
+                """;
+        Result<List<String>> result;
+        if (nosql)
+            result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
+                    .stream().map(Following::getFollowee).collect(Collectors.toList()));
+        else {
+            try {
+                result = errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Following.class, format(QUERY_1_FMT, userId))
+                        .stream().map(Following::getFollowee).collect(Collectors.toList()));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
 
-		if (!Token.isValid(token, userId))
-			return error(FORBIDDEN);
+        }
 
-		// delete shorts
-		var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
-		var res1 = DB.sql(query1, Short.class);
-		for(Short s: res1)
-			if(!DB.deleteOne(s).isOK())
-				return error(BAD_REQUEST);
+        if (!result.isOK()) return result;
 
-		// delete follows
-		var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
-		var res2 = DB.sql(query2, Following.class);
-		for(Following f: res2)
-			if(!DB.deleteOne(f).isOK())
-				return error(BAD_REQUEST);
+        var usersList = result.value();
 
-		// delete likes
-		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
-		var res3 = DB.sql(query3, Likes.class);
-		for(Likes l: res3)
-			if(!DB.deleteOne(l).isOK())
-				return error(BAD_REQUEST);
+        usersList.add(userId);
 
-		return Result.ok();
-	}
-	
+        String usersFormated = usersList.stream()
+                .map(id -> "'" + id + "'")
+                .collect(Collectors.joining(", "));
 
+        final var QUERY_2_FMT = """
+                	SELECT * FROM Short s
+                	WHERE s.ownerId IN (%s)
+                	ORDER BY s.timestamp DESC
+                """;
+
+        if (nosql) {
+            return errorOrValue(okUser(userId, password), DB.sql(format(QUERY_2_FMT, usersFormated), Short.class)
+                    //.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
+                    .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
+        } else {
+            try {
+                return errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Short.class, format(QUERY_2_FMT, usersFormated))
+                                .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
+                        //.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    protected Result<User> okUser(String userId, String pwd) {
+        return JavaUsers.getInstance().getUser(userId, pwd);
+    }
+
+    private Result<Void> okUser(String userId) {
+        var res = okUser(userId, "");
+        if (res.error() == FORBIDDEN)
+            return ok();
+        else
+            return error(res.error());
+    }
+
+    @Override
+    public Result<Void> deleteAllShorts(String userId, String password, String token) {
+        Log.info(() -> format("deleteAllShorts : userId = %s, password = %s, token = %s\n", userId, password, token));
+
+        if (!Token.isValid(token, userId))
+            return error(FORBIDDEN);
+
+        // delete shorts
+        var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
+
+        List<Short> res1;
+        if (nosql)
+            res1 = DB.sql(query1, Short.class);
+        else {
+            try {
+                res1 = CosmosPostgresDB.query(Short.class, query1);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        for (Short s : res1)
+            if (!DB.deleteOne(s).isOK())
+                return error(BAD_REQUEST);
+
+        // delete follows
+        var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
+
+        List<Following> res2;
+        if (nosql)
+            res2 = DB.sql(query2, Following.class);
+        else {
+            try {
+                res2 = CosmosPostgresDB.query(Following.class, query2);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        for (Following f : res2)
+            if (nosql)
+                if (!DB.deleteOne(f).isOK())
+                    return error(BAD_REQUEST);
+                else {
+                    try {
+                        if (!CosmosPostgresDB.deleteOne(f).isOK())
+                            return error(BAD_REQUEST);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        // delete likes
+        var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
+        List<Likes> res3;
+        if (nosql)
+            res3 = DB.sql(query3, Likes.class);
+        else {
+            try {
+                res3 = CosmosPostgresDB.query(Likes.class, query3);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        for (Likes l : res3)
+            if (!DB.deleteOne(l).isOK())
+                return error(BAD_REQUEST);
+
+        return Result.ok();
+
+    }
 }

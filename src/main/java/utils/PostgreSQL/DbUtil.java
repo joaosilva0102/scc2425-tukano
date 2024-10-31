@@ -8,6 +8,11 @@ import javax.sql.DataSource;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+/**
+ *
+ * Inspired by https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/quickstart-app-stacks-java
+ */
+
 public class DbUtil {
     private static final String DB_USERNAME = "db.username";
     private static final String DB_PASSWORD = "db.password";

@@ -41,7 +41,7 @@ public class JavaUsers implements Users {
 		if (badUserInfo(user))
 			return error(BAD_REQUEST);
 
-		Cache.insertIntoCache("user", user.getUserId(), user);
+		Cache.insertIntoCache("user", user.getUserId(), user);//TODO: having conflict in database (same id)
 
 		return errorOrValue(DB.insertOne(user), user.getUserId());
 	}

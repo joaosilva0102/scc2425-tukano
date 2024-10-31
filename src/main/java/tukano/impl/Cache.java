@@ -29,9 +29,14 @@ public class Cache {
     protected static <T> Result<T> insertIntoCache(String keyType, String keyValue, T obj) {
         try (var jedis = RedisCache.getCachePool().getResource()) {
             var key = String.format("%s:%s",keyType, keyValue);
+            if(jedis.get(key) != null) {
+                Log.info("Data already exists in cache");
+            }
+            else{
             var value = JSON.encode(obj);
             jedis.set(key, value);
             Log.info("Inserted data into cache");
+            }
             return ok();
         }
     }

@@ -23,6 +23,11 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 
+
+/**
+ *
+ * Inspired by https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/quickstart-app-stacks-java
+ */
 public class CosmosPostgresDB<T> {
     private static final Logger log = Logger.getLogger(CosmosPostgresDB.class.getName());
     private static Connection connection = null;
@@ -90,10 +95,16 @@ public class CosmosPostgresDB<T> {
         return Result.ok(/* TODO */);
     }
 
-    public static<T> Result<?> deleteOne(Entity obj) throws SQLException {
+    public static<T> Result<?> deleteOne(T entity) throws SQLException {
         log.info("Delete data");
         PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM ? WHERE id = ?");
-        deleteStatement.setString(1, obj.getId());
+//        deleteStatement.setString(1, obj.getId());
+        Field[] fields = entity.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            if (field.getName().equals("id")) {
+                deleteStatement.setString(2, field.toString());
+            }
+        }
         ResultSet resultSet = deleteStatement.executeQuery();
         if (!resultSet.next()) {
             log.info("There is no data in the database!");
