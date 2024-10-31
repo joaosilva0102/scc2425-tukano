@@ -21,7 +21,7 @@ public class Short extends Entity {
 
 	public Short() {}
 	
-	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
+	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes, int totalviews) {
 		super();
 		this.id = shortId;
 		this.ownerId = ownerId;
@@ -32,7 +32,7 @@ public class Short extends Entity {
 	}
 
 	public Short(String shortId, String ownerId, String blobUrl) {
-		this( shortId, ownerId, blobUrl, System.currentTimeMillis(), 0);
+		this( shortId, ownerId, blobUrl, System.currentTimeMillis(), 0, 0);
 	}
 	
 	public String getShortId() {
@@ -85,11 +85,11 @@ public class Short extends Entity {
 		/*return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
 				+ timestamp + ", totalLikes=" + totalLikes + ", totalviews=" + totalviews + "]";*/
 		return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
-				+ timestamp + ", totalLikes=" + totalLikes + "]";
+				+ timestamp + ", totalLikes=" + totalLikes + ", totalviews=" + totalviews + "]";
 	}
 	
 	public Short copyWithLikes_And_Token( int totLikes) {
 		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(id, timestamp));
-		return new Short( id, ownerId, urlWithToken, timestamp, totLikes);
+		return new Short( id, ownerId, urlWithToken, timestamp, totLikes, totalviews);
 	}	
 }
