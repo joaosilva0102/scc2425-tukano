@@ -94,16 +94,16 @@ public class JavaShorts implements Shorts {
         var likes = DB.sql(query, Likes.class).size();
 
         if (!result.isOK()) {
-                if (nosql)
-                    result = DB.getOne(shortId, Short.class);
-                else {
-                    try {
-                        result = CosmosPostgresDB.getOne(shortId, Short.class);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
+            if (nosql)
+                result = DB.getOne(shortId, Short.class);
+            else {
+                try {
+                    result = CosmosPostgresDB.getOne(shortId, Short.class);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
                 }
             }
+        }
 //            Log.log(Level.WARNING, "AQUII: " + cacheRes);
 //            return errorOrValue(cacheRes.isOK() ? cacheRes : nosql ? DB.getOne(shortId, Short.class) : CosmosPostgresDB.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
         return result;
@@ -117,10 +117,9 @@ public class JavaShorts implements Shorts {
 
             return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
                 Cache.removeFromCache("short", shortId);
-                if(nosql) {
-                     var res = DB.deleteOne(shrt);
-                }
-                else{
+                if (nosql) {
+                    var res = DB.deleteOne(shrt);
+                } else {
                     try {
                         CosmosPostgresDB.deleteOne(shrt);
                     } catch (SQLException e) {
@@ -133,8 +132,7 @@ public class JavaShorts implements Shorts {
 
                 if (nosql) {
                     itemsToDelete = DB.sql(query, Likes.class);
-                }
-                else {
+                } else {
                     try {
                         itemsToDelete = CosmosPostgresDB.query(Likes.class, query);
                     } catch (SQLException e) {
@@ -145,8 +143,7 @@ public class JavaShorts implements Shorts {
                 for (Likes like : itemsToDelete) {
                     if (nosql) {
                         DB.deleteOne(like);
-                    }
-                    else {
+                    } else {
                         try {
                             CosmosPostgresDB.deleteOne(like);
                         } catch (SQLException e) {
@@ -311,8 +308,8 @@ public class JavaShorts implements Shorts {
         } else {
             try {
                 return errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Short.class, format(QUERY_2_FMT, usersFormated))
-                                .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
-                        //.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
+                        .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
+                //.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -340,64 +337,87 @@ public class JavaShorts implements Shorts {
 
         // delete shorts
         var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
-
         List<Short> res1;
-        if (nosql)
-            res1 = DB.sql(query1, Short.class);
-        else {
-            try {
+        try {
+            if (nosql) {
+                res1 = DB.sql(query1, Short.class);
+            } else {
                 res1 = CosmosPostgresDB.query(Short.class, query1);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        for (Short s : res1)
-            if (!DB.deleteOne(s).isOK())
+        for (Short s : res1) {
+            boolean deleteSuccess;
+            if (nosql) {
+                deleteSuccess = DB.deleteOne(s).isOK();
+            } else {
+                try {
+                    deleteSuccess = CosmosPostgresDB.deleteOne(s).isOK();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            if (!deleteSuccess)
                 return error(BAD_REQUEST);
+        }
 
         // delete follows
         var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
-
         List<Following> res2;
-        if (nosql)
-            res2 = DB.sql(query2, Following.class);
-        else {
-            try {
+        try {
+            if (nosql) {
+                res2 = DB.sql(query2, Following.class);
+            } else {
                 res2 = CosmosPostgresDB.query(Following.class, query2);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
 
-        for (Following f : res2)
-            if (nosql)
-                if (!DB.deleteOne(f).isOK())
-                    return error(BAD_REQUEST);
-                else {
-                    try {
-                        if (!CosmosPostgresDB.deleteOne(f).isOK())
-                            return error(BAD_REQUEST);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
+        for (Following f : res2) {
+            boolean deleteSuccess;
+            if (nosql) {
+                deleteSuccess = DB.deleteOne(f).isOK();
+            } else {
+                try {
+                    deleteSuccess = CosmosPostgresDB.deleteOne(f).isOK();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
                 }
+            }
+            if (!deleteSuccess)
+                return error(BAD_REQUEST);
+        }
+
         // delete likes
         var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
         List<Likes> res3;
-        if (nosql)
-            res3 = DB.sql(query3, Likes.class);
-        else {
-            try {
+        try {
+            if (nosql) {
+                res3 = DB.sql(query3, Likes.class);
+            } else {
                 res3 = CosmosPostgresDB.query(Likes.class, query3);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        for (Likes l : res3)
-            if (!DB.deleteOne(l).isOK())
+
+        for (Likes l : res3) {
+            boolean deleteSuccess;
+            if (nosql) {
+                deleteSuccess = DB.deleteOne(l).isOK();
+            } else {
+                try {
+                    deleteSuccess = CosmosPostgresDB.deleteOne(l).isOK();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            if (!deleteSuccess)
                 return error(BAD_REQUEST);
-
+        }
         return Result.ok();
-
     }
+
 }
