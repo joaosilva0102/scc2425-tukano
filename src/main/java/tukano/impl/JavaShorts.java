@@ -8,17 +8,13 @@ import static tukano.api.Result.errorOrVoid;
 import static tukano.api.Result.ok;
 import static tukano.api.Result.ErrorCode.BAD_REQUEST;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
-import static utils.DB.getOne;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import org.hsqldb.server.HsqlSocketRequestHandler;
 import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.api.Short;
@@ -29,14 +25,14 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.PostgreSQL.CosmosPostgresDB;
-import utils.PostgreSQL.DbUtil;
 
 public class JavaShorts implements Shorts {
 
     private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
 
     private static Shorts instance;
-    private boolean nosql = true;
+    //private CosmosPostgresDB<Object> postgresDB = CosmosPostgresDB.getInstance();
+    private boolean nosql = false;
 
     synchronized public static Shorts getInstance() {
         if (instance == null)

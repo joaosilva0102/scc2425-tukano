@@ -23,7 +23,8 @@ public class JavaUsers implements Users {
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
 	private static Users instance;
-	private boolean nosql = true;
+	private boolean nosql = false;
+	private static CosmosPostgresDB postgre = CosmosPostgresDB.getInstance();
 
 	synchronized public static Users getInstance() {
 		if (instance == null)
@@ -43,7 +44,13 @@ public class JavaUsers implements Users {
 
 		Cache.insertIntoCache("user", user.getUserId(), user);//TODO: having conflict in database (same id)
 
-		return errorOrValue(DB.insertOne(user), user.getUserId());
+		if(nosql)
+			return errorOrValue(DB.insertOne(user), user.getUserId());
+		else{
+
+				return errorOrValue(postgre.insertUser(user), user.getUserId());
+
+        }
 	}
 
 	@Override
@@ -80,7 +87,7 @@ public class JavaUsers implements Users {
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if(!user.isOK()) {
 			if(nosql)
-				user = DB.updateOne(other); //changed from getOne to updatOne
+				user = DB.updateOne(other);
 			else {
                 try {
                     user = CosmosPostgresDB.updateOne(other);
@@ -93,7 +100,15 @@ public class JavaUsers implements Users {
 				usr -> {
 					if(!Cache.insertIntoCache("user", userId, other).isOK())
 						return error(BAD_REQUEST);
-					return DB.updateOne(usr.updateFrom(other));
+					if(nosql)
+						return DB.updateOne(other);
+					else {
+						try {
+							return CosmosPostgresDB.updateOne(other);
+						} catch (SQLException e) {
+							throw new RuntimeException(e);
+						}
+					}
 				});
 	}
 

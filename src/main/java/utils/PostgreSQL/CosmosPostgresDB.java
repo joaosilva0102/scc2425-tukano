@@ -1,8 +1,11 @@
 package utils.PostgreSQL;
 
 import com.azure.cosmos.CosmosException;
-import tukano.api.Entity;
+
+import com.azure.cosmos.models.PartitionKey;
 import tukano.api.Result;
+import tukano.api.User;
+import tukano.api.Short;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,32 +15,126 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.io.IOException;
 import java.sql.*;
 import java.util.*;
-import java.util.logging.Logger;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-
 
 /**
  *
  * Inspired by https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/quickstart-app-stacks-java
  */
+
+
 public class CosmosPostgresDB<T> {
     private static final Logger log = Logger.getLogger(CosmosPostgresDB.class.getName());
-    private static Connection connection = null;
+    private static Connection connection;
+    private static CosmosPostgresDB<?> instance;
 
-    private CosmosPostgresDB() throws SQLException {
-        connection = DbUtil.getDataSource().getConnection();//TODO: should be singleton?
-        Scanner scanner = new Scanner(CosmosPostgresDB.class.getClassLoader().getResourceAsStream("schema.sql"));
-        Statement statement = connection.createStatement();
-        while (scanner.hasNextLine()) {
-            statement.execute(scanner.nextLine());
+    /*public CosmosPostgresDB(){
+        initializeConnection();
+    }*/
+
+    // Private constructor for singleton
+    private CosmosPostgresDB() {
+        initializeConnection();
+    }
+
+    // Singleton
+    public static <T> CosmosPostgresDB<T> getInstance() {
+        if (instance == null) {
+            synchronized (CosmosPostgresDB.class) {
+                if (instance == null) {
+                    instance = new CosmosPostgresDB<>();
+                }
+            }
+        }
+        return (CosmosPostgresDB<T>) instance;
+    }
+
+    private static void initializeConnection() {
+        try {
+            log.info("Initializing database connection...");
+            if (connection == null || connection.isClosed()) {
+                connection = DbUtil.getDataSource().getConnection();
+                if (connection == null) {
+                    throw new SQLException("Failed to obtain connection from data source");
+                }
+                log.info("Database connection initialized successfully");
+                initializeSchema();
+            }
+        } catch (SQLException e) {
+            log.severe("Failed to initialize connection: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Database connection failed", e);
+        }
+    }
+
+    private static void initializeSchema() {
+        log.info("Connecting to the database");
+        try {
+            log.info("Connecting to the database");
+            Connection connection = DbUtil.getDataSource().getConnection();
+            System.out.println("The Connection Object is of Class: " + connection.getClass());
+            log.info("Database connection test: " + connection.getCatalog());
+            log.info("Creating table");
+            log.info("Creating index");
+            log.info("distributing table");
+            Scanner scanner = new Scanner(DemoApplication.class.getClassLoader().getResourceAsStream("schema.sql"));
+            Statement statement = connection.createStatement();
+            while (scanner.hasNextLine()) {
+                statement.execute(scanner.nextLine());
+            }
+
+            log.info("Schema initialization completed successfully");
+        } catch (SQLException e) {
+            log.log(Level.WARNING, "Failed to initialize schema: ", e);
+            throw new RuntimeException("Database initialization failed", e);
+        }
+    }
+
+    public static Result<?> insertUser(User user) {
+        checkConnection();
+        log.info("Inserting user");
+        try (PreparedStatement insertStatement = connection.prepareStatement(
+                "INSERT INTO users(userId, email, password, displayName) VALUES (?, ?, ?, ?) ON CONFLICT (userId) DO NOTHING;"
+        )) {
+            insertStatement.setString(1, user.getUserId());
+            insertStatement.setString(2, user.getEmail());
+            insertStatement.setString(3, user.getPwd());
+            insertStatement.setString(4, user.getDisplayName());
+            insertStatement.executeUpdate();
+            log.info("User inserted successfully");
+            return Result.ok(user);
+        } catch (SQLException e) {
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    private static void checkConnection() {
+        try {
+            if (connection == null || connection.isClosed()) {
+                log.info("Reconnecting to database");
+                connection = DbUtil.getDataSource().getConnection();
+                initializeSchema();
+            }
+        } catch (SQLException e) {
+            log.info("Failed to check connection: " + e);
+            throw new RuntimeException("Database connection check failed", e);
+        }
+    }
+    public static Short insertShort(Short shortObj) {
+        try {
+            PreparedStatement insertStatement = connection.prepareStatement("INSERT INTO shorts(id, ownerId, blobUrl, timestamp, totalLikes ) VALUES (?, ?, ?, ?, ?)");
+            insertStatement.setString(1, shortObj.getShortId());
+            insertStatement.setString(2, shortObj.getOwnerId());
+            insertStatement.setString(3, shortObj.getBlobUrl());
+            insertStatement.setLong(4, shortObj.getTimestamp());
+            insertStatement.setInt(5, shortObj.getTotalLikes());
+            insertStatement.executeUpdate();
+            return Result.ok(shortObj).value();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
