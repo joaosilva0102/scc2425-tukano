@@ -50,8 +50,6 @@ public class TukanoRestServer extends Application {
 	}
 
 	public static void main(String[] args) throws Exception {
-		Props.load("azurekeys-region.props");
-
 		return;
 	}
 }

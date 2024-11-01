@@ -1,6 +1,7 @@
 package utils;
 
 import com.azure.cosmos.*;
+import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
@@ -8,6 +9,7 @@ import tukano.api.Result;
 import tukano.api.Result.ErrorCode;
 import tukano.api.Short;
 import tukano.api.User;
+import tukano.impl.JavaUsers;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
@@ -17,9 +19,11 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 public class CosmosDBLayer {
     private static final Map<Class<?>, String> containerMap = new HashMap<>();
+    private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
     static {
         containerMap.put(User.class, "users");
@@ -31,6 +35,7 @@ public class CosmosDBLayer {
     private static CosmosDBLayer instance;
 
     public static synchronized CosmosDBLayer getInstance() {
+        Log.info("Accessing CosmosDB...");
         if (instance != null)
             return instance;
 
@@ -117,6 +122,18 @@ public class CosmosDBLayer {
 			e.printStackTrace();
 			throw e;
 		}*/
+    }
+
+    public Result<Void> clearAllContainers() {
+        for (CosmosContainerProperties containerProperties : db.readAllContainers().stream().toList()) {
+            CosmosContainer container = db.getContainer(containerProperties.getId());
+            Log.info("Deleting documents from container: " + containerProperties.getId());
+
+            // Delete all items in the container
+            container.queryItems("SELECT * FROM c", new CosmosQueryRequestOptions(), Object.class)
+                    .forEach(item -> container.deleteItem(item, new CosmosItemRequestOptions()));
+        }
+        return Result.ok();
     }
 
     <T> Result<T> tryCatch(Supplier<T> supplierFunc) {

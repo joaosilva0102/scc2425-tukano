@@ -1,20 +1,19 @@
 package main.test.test;
 
-import java.io.File;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.Random;
-
-import tukano.api.Result;
-import tukano.api.User;
 import main.test.tukano.clients.rest.RestBlobsClient;
 import main.test.tukano.clients.rest.RestShortsClient;
 import main.test.tukano.clients.rest.RestUsersClient;
+import tukano.api.Result;
+import tukano.api.User;
 import tukano.impl.rest.TukanoRestServer;
-import utils.Cache;
-import utils.CosmosDBLayer;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class Test {
+import org.junit.jupiter.api.Test;
+
+import java.nio.ByteBuffer;
+import java.util.Random;
+
+public class UnitTests {
 	
 	static {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s");

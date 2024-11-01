@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
+import utils.Cache;
 import utils.DB;
 
 public class JavaUsers implements Users {
@@ -21,6 +22,8 @@ public class JavaUsers implements Users {
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
 	private static Users instance;
+	private static final String USERS_LIST = "USERS_LIST";
+	private static final String USER_FMT = "user:%s";
 
 	synchronized public static Users getInstance() {
 		if (instance == null)
@@ -38,9 +41,16 @@ public class JavaUsers implements Users {
 		if (badUserInfo(user))
 			return error(BAD_REQUEST);
 
-		Cache.insertIntoCache("user", user.getUserId(), user);
+		if (Cache.isCached("user", user.getUserId()))
+			return error(CONFLICT);
 
-		return errorOrValue(DB.insertOne(user), user.getUserId());
+		Result<User> r = DB.insertOne(user);
+
+		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() &&
+				!Cache.appendList(USERS_LIST, user).isOK())
+			Log.info("Error inserting user into cache");
+
+		return errorOrValue(r, user.getUserId());
 	}
 
 	@Override
@@ -50,11 +60,10 @@ public class JavaUsers implements Users {
 		if (userId == null)
 			return error(BAD_REQUEST);
 
-		Result<User> user = Cache.getFromCache("user", userId, User.class);
+		Result<User> user = Cache.getFromCache(String.format(USER_FMT, userId), User.class);
 		if (!user.isOK()) {
 			user = DB.getOne(userId, User.class);
-			if(user.isOK()) Cache.insertIntoCache("user",
-					user.value().getUserId(), user.value());
+			if(user.isOK()) Cache.insertIntoCache(String.format(USER_FMT, userId), user.value());
 		}
 
 		return validatedUserOrError(user, pwd);
@@ -67,15 +76,17 @@ public class JavaUsers implements Users {
 		if (badUpdateUserInfo(userId, pwd, other))
 			return error(BAD_REQUEST);
 
-		Result<User> user = Cache.getFromCache("user", userId, User.class);
-		if(!user.isOK())
-			user = DB.getOne(userId, User.class);
+		Result<User> user = Cache.getFromCache(String.format(USER_FMT, userId), User.class);
+		if(!user.isOK()) user = DB.getOne(userId, User.class);
 
 		return errorOrResult(validatedUserOrError(user, pwd),
 				usr -> {
-					if(!Cache.insertIntoCache("user", userId, other).isOK())
+					User updatedUser = usr.updateFrom(other);
+					if(!DB.updateOne(updatedUser).isOK())
 						return error(BAD_REQUEST);
-					return DB.updateOne(usr.updateFrom(other));
+
+					Cache.updateList(USERS_LIST, usr, updatedUser);
+					return Cache.insertIntoCache(String.format(USER_FMT, userId), updatedUser);
 				});
 	}
 
@@ -87,13 +98,12 @@ public class JavaUsers implements Users {
 		if (userId == null || pwd == null)
 			return error(BAD_REQUEST);
 
-		Result<User> user = Cache.getFromCache("user", userId, User.class);
+		Result<User> user = Cache.getFromCache(String.format(USER_FMT, userId), User.class);
 		if (!user.isOK()) user = DB.getOne(userId, User.class);
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
-
-			if(!Cache.removeFromCache("user", userId).isOK())
-				return error(BAD_REQUEST);
+			Cache.removeFromCache(String.format(USER_FMT, userId));
+			Cache.removeFromList(USERS_LIST, usr);
 
 			// Delete user shorts and related info asynchronously in a separate thread
 			Executors.defaultThreadFactory().newThread(() -> {
@@ -109,13 +119,23 @@ public class JavaUsers implements Users {
 	public Result<List<User>> searchUsers(String pattern) {
 		Log.info(() -> format("searchUsers : patterns = %s\n", pattern));
 
+		// Access cache
+		Result<List<User>> cacheHits = Cache.getList(USERS_LIST, User.class);
+		if(Cache.isListCached(USERS_LIST)) {
+			List<User> l = cacheHits.value().stream().filter(u -> u.getUserId().contains(pattern))
+					.map(User::copyWithoutPassword)
+					.toList();
+			return ok(l);
+		}
+
+		// If not in cache, access DB
 		var query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
-		var hits = DB.sql(query, User.class)
+		var dbHits = DB.sql(query, User.class)
 				.stream()
 				.map(User::copyWithoutPassword)
 				.toList();
 
-		return ok(hits);
+		return ok(dbHits);
 	}
 
 	private Result<User> validatedUserOrError(Result<User> res, String pwd) {
