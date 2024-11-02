@@ -1,4 +1,4 @@
-package utils;
+package utils.database;
 
 import com.azure.cosmos.*;
 import com.azure.cosmos.models.CosmosContainerProperties;
@@ -12,6 +12,7 @@ import tukano.api.User;
 import tukano.impl.JavaUsers;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
+import utils.Props;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
-public class CosmosDBLayer {
+public class CosmosDB {
     private static final Map<Class<?>, String> containerMap = new HashMap<>();
     private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
@@ -32,9 +33,9 @@ public class CosmosDBLayer {
         containerMap.put(Likes.class, "likes");
     }
 
-    private static CosmosDBLayer instance;
+    private static CosmosDB instance;
 
-    public static synchronized CosmosDBLayer getInstance() {
+    public static synchronized CosmosDB getInstance() {
         Log.info("Accessing CosmosDB...");
         if (instance != null)
             return instance;
@@ -42,14 +43,14 @@ public class CosmosDBLayer {
         CosmosClient client = new CosmosClientBuilder()
                 .endpoint(Props.get("COSMOSDB_URL", ""))
                 .key(Props.get("COSMOSDB_KEY", ""))
-                //.directMode()
-                 .gatewayMode()
+                .directMode()
+                //.gatewayMode()
                 // replace by .directMode() for better performance
                 .consistencyLevel(ConsistencyLevel.SESSION)
                 .connectionSharingAcrossClientsEnabled(true)
                 .contentResponseOnWriteEnabled(true)
                 .buildClient();
-        instance = new CosmosDBLayer(client);
+        instance = new CosmosDB(client);
         return instance;
     }
 
@@ -57,7 +58,7 @@ public class CosmosDBLayer {
     private CosmosDatabase db;
     private final Map<String, CosmosContainer> containers = new HashMap<>();
 
-    public CosmosDBLayer(CosmosClient client) {
+    public CosmosDB(CosmosClient client) {
         this.client = client;
     }
 
@@ -87,8 +88,8 @@ public class CosmosDBLayer {
         return tryCatch(() -> getContainer(clazz).readItem(id, new PartitionKey(id), clazz).getItem());
     }
 
-    public <T> Result<?> deleteOne(T obj) {
-        return tryCatch(() -> getContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions()).getItem());
+    public <T> Result<T> deleteOne(T obj) {
+        return tryCatch(() -> (T) getContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions()).getItem());
     }
 
     public <T> Result<T> updateOne(T obj) {
@@ -99,11 +100,10 @@ public class CosmosDBLayer {
         return tryCatch(() -> getContainer(obj.getClass()).createItem(obj).getItem());
     }
 
-    public <T> Result<List<T>> query(Class<T> clazz, String queryStr) {
-        return tryCatch(() -> {
-            var res = getContainer(clazz).queryItems(queryStr, new CosmosQueryRequestOptions(), clazz);
-            return res.stream().toList();
-        });
+    public <T> List<T> query(Class<T> clazz, String queryStr) {
+        var res = getContainer(clazz).queryItems(queryStr, new CosmosQueryRequestOptions(), clazz);
+        return res.stream().toList();
+
     }
 
     public <T> Result<T> execute(Consumer<CosmosContainer> proc, Class<T> clazz) {

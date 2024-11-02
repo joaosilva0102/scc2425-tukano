@@ -1,6 +1,5 @@
-package utils;
+package utils.database;
 
-import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -50,7 +49,7 @@ public class Hibernate {
 		return instance;
 	}
 
-	public Result<Void> persistOne(Object  obj) {
+	public Result<Void> insertOne(Object  obj) {
 		return execute( (hibernate) -> {
 			hibernate.persist( obj );
 		});

@@ -1,4 +1,4 @@
-package utils.PostgreSQL;
+package utils.database.PostgreSQL;
 
 import java.sql.Connection;
 import java.sql.Statement;

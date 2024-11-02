@@ -1,4 +1,4 @@
-package main.test.last;
+package main.test.clients;
 
 
 import jakarta.ws.rs.ProcessingException;

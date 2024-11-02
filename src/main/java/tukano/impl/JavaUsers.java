@@ -7,7 +7,6 @@ import static tukano.api.Result.errorOrResult;
 import static tukano.api.Result.errorOrValue;
 import static tukano.api.Result.ok;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -16,9 +15,8 @@ import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
 import utils.Cache;
-import utils.DB;
-import utils.PostgreSQL.CosmosPostgresDB;
-import utils.PostgreSQL.PostgreDB;
+import utils.database.DB;
+import utils.database.PostgresDB;
 
 public class JavaUsers implements Users {
 
@@ -51,7 +49,7 @@ public class JavaUsers implements Users {
 		if(nosql)
 			r = DB.insertOne(user);
 		else
-			r = PostgreDB.insertOne(user);
+			r = PostgresDB.insertOne(user);
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
@@ -72,7 +70,7 @@ public class JavaUsers implements Users {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
 			else
-				user = PostgreDB.getOne(userId, User.class);
+				user = PostgresDB.getOne(userId, User.class);
 			if(user.isOK()) Cache.insertIntoCache(String.format(USER_FMT, userId), user.value());
 		}
 		return validatedUserOrError(user, pwd);
@@ -90,7 +88,7 @@ public class JavaUsers implements Users {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
 			else
-				user = PostgreDB.getOne(userId, User.class);
+				user = PostgresDB.getOne(userId, User.class);
 		}
 
 		return errorOrResult(validatedUserOrError(user, pwd),
@@ -100,7 +98,7 @@ public class JavaUsers implements Users {
 						if(!DB.updateOne(updatedUser).isOK())
 							return error(BAD_REQUEST);
 					} else {
-						if(!PostgreDB.updateOne(updatedUser).isOK())
+						if(!PostgresDB.updateOne(updatedUser).isOK())
 							return error(BAD_REQUEST);
 					}
 					/*if(!DB.updateOne(updatedUser).isOK())
@@ -124,7 +122,7 @@ public class JavaUsers implements Users {
 			if (nosql)
 				user = DB.getOne(userId, User.class);
 			else
-				user = PostgreDB.getOne(userId, User.class);
+				user = PostgresDB.getOne(userId, User.class);
 		}
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
@@ -139,7 +137,7 @@ public class JavaUsers implements Users {
 			if(nosql)
             	return (Result<User>) DB.deleteOne(usr) ;
 			else
-				return PostgreDB.deleteOne(usr);
+				return PostgresDB.deleteOne(usr);
 		});
 	}
 
@@ -167,7 +165,7 @@ public class JavaUsers implements Users {
 					.map(User::copyWithoutPassword)
 					.toList();
 		else
-			dbHits = PostgreDB.sql(query2, User.class)
+			dbHits = PostgresDB.sql(query2, User.class)
 					.stream()
 					.map(User::copyWithoutPassword)
 					.toList();

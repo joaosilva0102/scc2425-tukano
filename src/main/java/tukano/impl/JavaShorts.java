@@ -6,8 +6,8 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.Cache;
-import utils.DB;
-import utils.PostgreSQL.PostgreDB;
+import utils.database.DB;
+import utils.database.PostgresDB;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -55,7 +55,7 @@ public class JavaShorts implements Shorts {
                 });
             }
             else{
-                return errorOrValue(PostgreDB.insertOne(shrt), s -> {
+                return errorOrValue(PostgresDB.insertOne(shrt), s -> {
                     if(!insertShortToCache(s, password).isOK())
                         Log.info("Error inserting short into cache");
                     return s.copyWithLikes_And_Token(0);
@@ -84,7 +84,7 @@ public class JavaShorts implements Shorts {
         if (nosql)
             likes = DB.sql(query, Likes.class).size();
         else{
-            likes = PostgreDB.sql(Likes.class, query2,shortId).size();
+            likes = PostgresDB.sql(Likes.class, query2,shortId).size();
         }
         return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(likes));
     }
@@ -98,7 +98,7 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 s = DB.getOne(shortId, Short.class);
             else
-                s = PostgreDB.getOne(shortId, Short.class);
+                s = PostgresDB.getOne(shortId, Short.class);
         }
 
         return errorOrResult(s, shrt -> errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
@@ -111,7 +111,7 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 likesToDelete = DB.sql(query, Likes.class);
             else
-                likesToDelete = PostgreDB.sql(Likes.class, query2, shortId);
+                likesToDelete = PostgresDB.sql(Likes.class, query2, shortId);
 
             likesToDelete.forEach(DB::deleteOne);
 
@@ -121,7 +121,7 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 DB.deleteOne(shrt);
             else
-                PostgreDB.deleteOne(shrt);
+                PostgresDB.deleteOne(shrt);
 
             return Result.ok();
         }));
@@ -139,7 +139,7 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 shorts = DB.sql(query, Short.class);
             else
-                shorts = PostgreDB.sql(Short.class, query2, userId);
+                shorts = PostgresDB.sql(Short.class, query2, userId);
             Cache.replaceList(cacheKey, shorts);
         }
 
@@ -157,7 +157,7 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 res = errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
             else
-                res = errorOrVoid(okUser(userId2), isFollowing ? PostgreDB.insertOne(f) : PostgreDB.deleteOne(f));
+                res = errorOrVoid(okUser(userId2), isFollowing ? PostgresDB.insertOne(f) : PostgresDB.deleteOne(f));
             if(!res.isOK()) return res;
 
             List<Short> followeeShorts = Cache.getList(String.format(USER_SHORTS_FMT, userId2), Short.class).value();
@@ -181,7 +181,7 @@ public class JavaShorts implements Shorts {
             return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
                     .stream().map(Following::getFollower).collect(Collectors.toList()));
         else
-            return errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, query2, userId)
+            return errorOrValue(okUser(userId, password), PostgresDB.sql(Following.class, query2, userId)
                     .stream().map(Following::getFollower).collect(Collectors.toList()));
     }
 
@@ -196,7 +196,7 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
             else
-                return errorOrVoid(okUser(userId, password), isLiked ? PostgreDB.insertOne(l) : PostgreDB.deleteOne(l));
+                return errorOrVoid(okUser(userId, password), isLiked ? PostgresDB.insertOne(l) : PostgresDB.deleteOne(l));
         });
     }
 
@@ -212,7 +212,7 @@ public class JavaShorts implements Shorts {
                 return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
                         .stream().map(Likes::getUserId).collect(Collectors.toList()));
             else
-                return errorOrValue(okUser(shrt.getOwnerId(), password), PostgreDB.sql(Likes.class, query2, shortId)
+                return errorOrValue(okUser(shrt.getOwnerId(), password), PostgresDB.sql(Likes.class, query2, shortId)
                         .stream().map(Likes::getUserId).collect(Collectors.toList()));
         });
     }
@@ -239,7 +239,7 @@ public class JavaShorts implements Shorts {
             result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
                 .stream().map(Following::getFollowee).collect(Collectors.toList()));
         else
-            result = errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, format(QUERY_1_FMT, userId))
+            result = errorOrValue(okUser(userId, password), PostgresDB.sql(Following.class, format(QUERY_1_FMT, userId))
                 .stream().map(Following::getFollowee).collect(Collectors.toList()));
 
         if(!result.isOK()) return result;
@@ -262,7 +262,7 @@ public class JavaShorts implements Shorts {
             feed = DB.sql(format(QUERY_2_FMT, usersFormated), Short.class)
                 .stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList());
         else
-            feed = PostgreDB.sql(Short.class, format(QUERY_2_FMT, usersFormated))
+            feed = PostgresDB.sql(Short.class, format(QUERY_2_FMT, usersFormated))
                 .stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList());
 
         Cache.replaceList(String.format(FEED_FMT, userId), feed);
@@ -296,14 +296,14 @@ public class JavaShorts implements Shorts {
             if(nosql)
                 shortsToDelete = DB.sql(query1, Short.class);
             else
-                shortsToDelete = PostgreDB.sql(Short.class, query1);
+                shortsToDelete = PostgresDB.sql(Short.class, query1);
         }
         shortsToDelete.forEach(s -> {
             removeCachedShort(s, password);
             if(nosql)
                 DB.deleteOne(s);
             else
-                PostgreDB.deleteOne(s);
+                PostgresDB.deleteOne(s);
         });
 
         // delete follows
@@ -312,8 +312,8 @@ public class JavaShorts implements Shorts {
             var followsToDelete = DB.sql(query2, Following.class);
             followsToDelete.forEach(DB::deleteOne);
         } else {
-            var followsToDelete = PostgreDB.sql(Following.class, query2);
-            followsToDelete.forEach(PostgreDB::deleteOne);
+            var followsToDelete = PostgresDB.sql(Following.class, query2);
+            followsToDelete.forEach(PostgresDB::deleteOne);
         }
 
 
@@ -326,8 +326,8 @@ public class JavaShorts implements Shorts {
             likesToDelete.forEach(DB::deleteOne);
         }
         else {
-            likesToDelete = PostgreDB.sql(Likes.class, query3_post, userId);
-            likesToDelete.forEach(PostgreDB::deleteOne);
+            likesToDelete = PostgresDB.sql(Likes.class, query3_post, userId);
+            likesToDelete.forEach(PostgresDB::deleteOne);
         }
 
         return Result.ok();

@@ -1,4 +1,4 @@
-package main.test.last;
+package main.test.clients;
 
 import tukano.api.Result;
 import tukano.api.Short;
@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 
-public class Test {
+public class Test_JB {
 	
 	static {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s");
@@ -23,7 +23,6 @@ public class Test {
 				x.printStackTrace();
 			}
 		}).start();
-
 		
 		Thread.sleep(1000);
 		

@@ -22,7 +22,7 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.Cache;
-import utils.DB;
+import utils.database.DB;
 
 public class JavaShortsV2 implements Shorts {
 

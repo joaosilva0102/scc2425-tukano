@@ -84,6 +84,36 @@
 					<password>s3cret</password>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>com.microsoft.azure</groupId>
+				<artifactId>azure-functions-maven-plugin</artifactId>
+				<version>${azure.functions.maven.plugin.version}</version>
+				<configuration>
+					<appName>${functionAppName}</appName>
+					<storageAccountName>${functionStorageAccountName}</storageAccountName>
+					<resourceGroup>${functionResourceGroup}</resourceGroup>
+					<region>${functionRegion}</region>
+					<disableAppInsights>false</disableAppInsights>
+					<buildJarWithDependencies>false</buildJarWithDependencies>
+					<runtime>
+						<javaVersion>17</javaVersion>
+					</runtime>
+					<appSettings>
+						<property>
+							<name>FUNCTIONS_EXTENSION_VERSION</name>
+							<value>~4</value>
+						</property>
+					</appSettings>
+				</configuration>
+				<executions>
+					<execution>
+						<id>package-functions</id>
+						<goals>
+							<goal>package</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>

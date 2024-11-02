@@ -1,16 +1,9 @@
-package utils.PostgreSQL;
-
+package utils.database;
 
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import org.hibernate.Session;
-
 import tukano.api.Result;
-import utils.Hibernate;
 
-public class PostgreDB {
+public class PostgresDB {
 
     public static <T> List<T> sql(String query, Class<T> clazz) {
         return Hibernate.getInstance().sql(query, clazz);
@@ -32,15 +25,7 @@ public class PostgreDB {
         return Hibernate.getInstance().updateOne(obj);
     }
 
-    public static <T> Result<T> insertOne( T obj) {
-        return Result.errorOrValue(Hibernate.getInstance().persistOne(obj), obj);
-    }
-
-    public static <T> Result<T> transaction( Consumer<Session> c) {
-        return Hibernate.getInstance().execute( c::accept );
-    }
-
-    public static <T> Result<T> transaction( Function<Session, Result<T>> func) {
-        return Hibernate.getInstance().execute( func );
+    public static <T> Result<T> insertOne(T obj) {
+        return Result.errorOrValue(Hibernate.getInstance().insertOne(obj), obj);
     }
 }

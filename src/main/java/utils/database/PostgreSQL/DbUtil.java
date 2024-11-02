@@ -1,6 +1,5 @@
-package utils.PostgreSQL;
+package utils.database.PostgreSQL;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;

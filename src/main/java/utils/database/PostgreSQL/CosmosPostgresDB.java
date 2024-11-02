@@ -1,11 +1,10 @@
-package utils.PostgreSQL;
+package utils.database.PostgreSQL;
 
 import com.azure.cosmos.CosmosException;
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Short;
 
-import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 import java.util.logging.Level;
