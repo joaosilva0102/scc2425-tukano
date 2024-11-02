@@ -17,6 +17,7 @@ import tukano.api.User;
 import tukano.api.Users;
 import utils.DB;
 import utils.PostgreSQL.CosmosPostgresDB;
+import utils.PostgreSQL.PostgreDB;
 
 public class JavaUsers implements Users {
 
@@ -24,7 +25,7 @@ public class JavaUsers implements Users {
 
 	private static Users instance;
 	private boolean nosql = false;
-	private static CosmosPostgresDB<Object> postgre = CosmosPostgresDB.getInstance();
+	//private static CosmosPostgresDB<Object> postgre = CosmosPostgresDB.getInstance();
 
 	synchronized public static Users getInstance() {
 		if (instance == null)
@@ -47,7 +48,8 @@ public class JavaUsers implements Users {
 		if(nosql)
 			return errorOrValue(DB.insertOne(user), user.getUserId());
 		else
-			return errorOrValue(postgre.insertOne(user), user.getUserId());
+			//return errorOrValue(postgre.insertOne(user), user.getUserId());
+			return errorOrValue( PostgreDB.insertOne( user), user.getUserId() );
 	}
 
 	@Override
@@ -62,8 +64,8 @@ public class JavaUsers implements Users {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
 			else
-				user = postgre.getOne(userId, User.class);
-
+				//user = postgre.getOne(userId, User.class);
+					user = PostgreDB.getOne(userId, User.class);
 			if(user.isOK()) Cache.insertIntoCache("user",
 					user.value().getUserId(), user.value());
 		}
@@ -82,7 +84,8 @@ public class JavaUsers implements Users {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
 			else
-				user = postgre.getOne(userId, User.class);
+				//user = postgre.getOne(userId, User.class);
+				user = PostgreDB.getOne(userId, User.class);
 		}
 		return errorOrResult(validatedUserOrError(user, pwd),
 				usr -> {
@@ -91,7 +94,8 @@ public class JavaUsers implements Users {
 					if(nosql)
 						return DB.updateOne(other);
 					else
-                        return postgre.updateOne(other);
+                        //return postgre.updateOne(other);
+						return PostgreDB.updateOne(other);
 				});
 	}
 
@@ -108,7 +112,8 @@ public class JavaUsers implements Users {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
 			else
-				user = postgre.getOne(userId, User.class);
+				//user = postgre.getOne(userId, User.class);
+				user = PostgreDB.getOne(userId, User.class);
 		}
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
@@ -125,16 +130,16 @@ public class JavaUsers implements Users {
 			if(nosql)
 				return (Result<User>) DB.deleteOne(usr);
 			else
-				return postgre.deleteOne(usr);
+				//return postgre.deleteOne(usr);
+				return PostgreDB.deleteOne(usr);
 		});
 	}
 
 	@Override
 	public Result<List<User>> searchUsers(String pattern) {
-		Log.info(() -> format("searchUsers : patterns = %s\n", pattern));
-
+		Log.info( () -> format("searchUsers : patterns = %s\n", pattern));
 		var query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
-		var sqlQuery = "SELECT * FROM public.users WHERE UPPER(id) LIKE '%' || UPPER(?) || '%';";
+		var query2 =  "SELECT * FROM \"User\" u WHERE UPPER(u.userId) LIKE '%" + pattern.toUpperCase() + "%'";
 		List<User> hits;
 		if(nosql) {
 			hits = DB.sql(query, User.class)
@@ -144,11 +149,15 @@ public class JavaUsers implements Users {
 		}
 		else{
             try {
-                hits = postgre.queryByPattern( sqlQuery, pattern)
+               /* hits = postgre.queryByPattern( sqlQuery, pattern)
+						.stream()
+						.map(User::copyWithoutPassword)
+						.toList();*/
+				 hits = PostgreDB.sql(query2, User.class)
 						.stream()
 						.map(User::copyWithoutPassword)
 						.toList();
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }

@@ -38,7 +38,7 @@ public class Test {
 		*
 		 */
 
-		System.out.println("***************TEST USERS************************");
+		/*System.out.println("***************TEST USERS************************");
 
 		 show(users.createUser( new User("wales", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 		 
@@ -49,13 +49,13 @@ public class Test {
 		 show(users.searchUsers(""));
 
 		 show(users.deleteUser("wales", "12345"));
-		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null
+		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null*/
 
 		/*
 		* TEST SHORTS
 		*
 		 */
-		/*System.out.println("***************TEST SHORTS 1 ************************");
+		System.out.println("***************TEST SHORTS 1 ************************");
 		Result<Short> s1, s3;
 		show(users.createUser( new User("wales1", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 
@@ -67,6 +67,7 @@ public class Test {
 		show(shorts.createShort("liskov1", "54321"));
 		show(shorts.createShort("liskov1", "54321"));
 		show(s3 = shorts.createShort("wales1", "12345"));
+		show(shorts.createShort("wales1", "12345"));
 
 		show(shorts.getShort( s3.value().getShortId()));
 
@@ -121,7 +122,7 @@ public class Test {
 		show(users.deleteUser("wales3", "123456"));//Check if all shorts are deleted
 		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted
 
-*/
+
 		/*var shortId = s1.value().getShortId();
 		System.out.println( "------->" + shortId );
 		var blobUrl = URI.create(s1.value().getBlobUrl());

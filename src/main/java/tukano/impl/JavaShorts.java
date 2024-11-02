@@ -9,6 +9,7 @@ import static tukano.api.Result.ok;
 import static tukano.api.Result.ErrorCode.BAD_REQUEST;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
 
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
@@ -25,11 +26,12 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.PostgreSQL.CosmosPostgresDB;
+import utils.PostgreSQL.PostgreDB;
 
 public class JavaShorts implements Shorts {
 
     private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
-    private static CosmosPostgresDB<Object> postgre = CosmosPostgresDB.getInstance();
+    //private static CosmosPostgresDB<Object> postgre = CosmosPostgresDB.getInstance();
     private static Shorts instance;
     private boolean nosql = false;
 
@@ -52,18 +54,18 @@ public class JavaShorts implements Shorts {
             var shortId = format("%s+%s", userId, UUID.randomUUID());
             var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId);
             var shrt = new Short(shortId, userId, blobUrl);
+            Cache.insertIntoCache("short", shortId, s);
 
             if (nosql) {
                 return errorOrValue(
                         DB.insertOne(shrt), s -> {
-                            Cache.insertIntoCache("short", shortId, s);
-                            //JavaBlobs.getInstance().upload(blobUrl,  , Token.get(shortId));
+                            //Cache.insertIntoCache("short", shortId, s);
                             return s.copyWithLikes_And_Token(0);
                         });
             } else {
                 return errorOrValue(
-                        postgre.insertOne(shrt), s -> {
-                            Cache.insertIntoCache("short", shortId, s);
+                        PostgreDB.insertOne(shrt), s -> {
+                            //Cache.insertIntoCache("short", shortId, s);
                             return s.copyWithLikes_And_Token(0);
                         });
             }
@@ -88,7 +90,7 @@ public class JavaShorts implements Shorts {
             if (nosql)
                 result = DB.getOne(shortId, Short.class);
             else
-                result = postgre.getOne(shortId, Short.class);
+                result = PostgreDB.getOne(shortId, Short.class);
 
         }
 //            Log.log(Level.WARNING, "AQUII: " + cacheRes);
@@ -107,7 +109,7 @@ public class JavaShorts implements Shorts {
                 if (nosql) {
                     var res = DB.deleteOne(shrt);
                 } else {
-                    postgre.deleteOne(shrt);
+                    PostgreDB.deleteOne(shrt);
                 }
 
                 var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
@@ -117,8 +119,8 @@ public class JavaShorts implements Shorts {
                     itemsToDelete = DB.sql(query, Likes.class);
                 } else {
                     try {
-                        itemsToDelete = postgre.query(Likes.class, query);
-                    } catch (SQLException e) {
+                        itemsToDelete = PostgreDB.sql(Likes.class, query);
+                    } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -128,7 +130,7 @@ public class JavaShorts implements Shorts {
                         DB.deleteOne(like);
                     } else {
 
-                        postgre.deleteOne(like);
+                        PostgreDB.deleteOne(like);
 
                     }
                 }
@@ -153,9 +155,9 @@ public class JavaShorts implements Shorts {
                     .stream().map(Short::getShortId).collect(Collectors.toList()));
         else {
             try {
-                return errorOrValue(okUser(userId), postgre.query(Short.class, query)
+                return errorOrValue(okUser(userId), PostgreDB.sql(Short.class, query)
                         .stream().map(Short::getShortId).collect(Collectors.toList()));
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -171,7 +173,7 @@ public class JavaShorts implements Shorts {
             if (nosql)
                 return errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
             else {
-                return errorOrVoid(okUser(userId2), isFollowing ? postgre.insertOne(f) : postgre.deleteOne(f));
+                return errorOrVoid(okUser(userId2), isFollowing ? PostgreDB.insertOne(f) : PostgreDB.deleteOne(f));
             }
         });
     }
@@ -186,9 +188,9 @@ public class JavaShorts implements Shorts {
                     .stream().map(Following::getFollower).collect(Collectors.toList()));
         else {
             try {
-                return errorOrValue(okUser(userId, password), postgre.query(Following.class, query)
+                return errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, query)
                         .stream().map(Following::getFollower).collect(Collectors.toList()));
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -207,7 +209,7 @@ public class JavaShorts implements Shorts {
         } else {
             return errorOrResult(getShort(shortId), shrt -> {
                 var l = new Likes(userId, shortId, shrt.getOwnerId());
-                return errorOrVoid(okUser(userId, password), isLiked ? postgre.insertOne(l) : postgre.deleteOne(l));
+                return errorOrVoid(okUser(userId, password), isLiked ? PostgreDB.insertOne(l) : PostgreDB.deleteOne(l));
             });
 
         }
@@ -227,9 +229,9 @@ public class JavaShorts implements Shorts {
                         .stream().map(Likes::getUserId).collect(Collectors.toList()));
             else {
                 try {
-                    return errorOrValue(okUser(shrt.getOwnerId(), password), postgre.query(Likes.class, query)
+                    return errorOrValue(okUser(shrt.getOwnerId(), password), PostgreDB.sql(Likes.class, query)
                             .stream().map(Likes::getUserId).collect(Collectors.toList()));
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -250,9 +252,9 @@ public class JavaShorts implements Shorts {
                     .stream().map(Following::getFollowee).collect(Collectors.toList()));
         else {
             try {
-                result = errorOrValue(okUser(userId, password), postgre.query(Following.class, format(QUERY_1_FMT, userId))
+                result = errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, format(QUERY_1_FMT, userId))
                         .stream().map(Following::getFollowee).collect(Collectors.toList()));
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
 
@@ -280,10 +282,10 @@ public class JavaShorts implements Shorts {
                     .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
         } else {
             try {
-                return errorOrValue(okUser(userId, password), postgre.query(Short.class, format(QUERY_2_FMT, usersFormated))
+                return errorOrValue(okUser(userId, password), PostgreDB.sql(Short.class, format(QUERY_2_FMT, usersFormated))
                         .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
                 //.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -315,9 +317,9 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 res1 = DB.sql(query1, Short.class);
             } else {
-                res1 = postgre.query(Short.class, query1);
+                res1 = PostgreDB.sql(Short.class, query1);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
         for (Short s : res1) {
@@ -325,7 +327,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 deleteSuccess = DB.deleteOne(s).isOK();
             } else {
-                deleteSuccess = postgre.deleteOne(s).isOK();
+                deleteSuccess = PostgreDB.deleteOne(s).isOK();
             }
             if (!deleteSuccess)
                 return error(BAD_REQUEST);
@@ -338,9 +340,9 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 res2 = DB.sql(query2, Following.class);
             } else {
-                res2 = postgre.query(Following.class, query2);
+                res2 = PostgreDB.sql(Following.class, query2);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -349,7 +351,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 deleteSuccess = DB.deleteOne(f).isOK();
             } else {
-                deleteSuccess = postgre.deleteOne(f).isOK();
+                deleteSuccess = PostgreDB.deleteOne(f).isOK();
             }
             if (!deleteSuccess)
                 return error(BAD_REQUEST);
@@ -362,9 +364,9 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 res3 = DB.sql(query3, Likes.class);
             } else {
-                res3 = postgre.query(Likes.class, query3);
+                res3 = PostgreDB.sql(Likes.class, query3);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -373,7 +375,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 deleteSuccess = DB.deleteOne(l).isOK();
             } else {
-                deleteSuccess = postgre.deleteOne(l).isOK();
+                deleteSuccess = PostgreDB.deleteOne(l).isOK();
             }
             if (!deleteSuccess)
                 return error(BAD_REQUEST);

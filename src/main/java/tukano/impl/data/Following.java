@@ -2,25 +2,27 @@ package tukano.impl.data;
 
 import java.util.Objects;
 
-public class Following {
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 
-	String id;
+@Entity
+public class Following{
+
+	@Id
 	String follower;
 
+	@Id
 	String followee;
 
-    public Following() {}
+
 
 	public Following(String follower, String followee) {
 		super();
-		this.id = follower + "_" + followee;
 		this.follower = follower;
 		this.followee = followee;
 	}
 
-	public String getId() {return id; }
-
-	public String setId(String id) { return this.id = id; }
+	public Following() {}
 
 	public String getFollower() {
 		return follower;
@@ -59,6 +61,6 @@ public class Following {
 	public String toString() {
 		return "Following [follower=" + follower + ", followee=" + followee + "]";
 	}
-	
-	
+
+
 }

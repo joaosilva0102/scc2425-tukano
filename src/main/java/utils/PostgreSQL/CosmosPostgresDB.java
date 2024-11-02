@@ -22,7 +22,7 @@ public class CosmosPostgresDB<T> {
     private static CosmosPostgresDB<?> instance;
 
     private CosmosPostgresDB() {
-        initializeConnection();
+        //initializeConnection();
     }
 
     // Singleton
@@ -37,7 +37,7 @@ public class CosmosPostgresDB<T> {
         return (CosmosPostgresDB<T>) instance;
     }
 
-    private static void initializeConnection() {
+    /*private static void initializeConnection() {
         try (Connection connection = DbUtil.getDataSource().getConnection()) {
             log.info("Initializing database connection...");
             if (connection == null || connection.isClosed()) {
@@ -65,7 +65,7 @@ public class CosmosPostgresDB<T> {
             log.log(Level.WARNING, "Failed to initialize schema: ", e);
             throw new RuntimeException("Database initialization failed", e);
         }
-    }
+    }*/
 
     public static <T> Result<T> insertOne(T entity) {
         log.info("Inserting data");

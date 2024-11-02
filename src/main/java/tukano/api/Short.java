@@ -1,26 +1,31 @@
 package tukano.api;
 
+import jakarta.persistence.Id;
+import jakarta.persistence.Entity;
 import tukano.impl.Token;
 
 /**
  * Represents a Short video uploaded by an user.
- * 
- * A short has an unique shortId and is owned by a given user; 
+ *
+ * A short has an unique shortId and is owned by a given user;
  * Comprises of a short video, stored as a binary blob at some bloburl;.
  * A post also has a number of likes, which can increase or decrease over time. It is the only piece of information that is mutable.
  * A short is timestamped when it is created.
  *
  */
-public class Short extends Entity {
-	
+@Entity
+public class Short {
+
+	@Id
 	String ownerId;
+	String id;
 	String blobUrl;
 	long timestamp;
 	int totalLikes;
 //	int totalviews;
 
 	public Short() {}
-	
+
 	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
 		super();
 		this.id = shortId;
@@ -34,7 +39,7 @@ public class Short extends Entity {
 	public Short(String shortId, String ownerId, String blobUrl) {
 		this( shortId, ownerId, blobUrl, System.currentTimeMillis(), 0);
 	}
-	
+
 	public String getShortId() {
 		return id;
 	}
@@ -87,9 +92,9 @@ public class Short extends Entity {
 		return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
 				+ timestamp + ", totalLikes=" + totalLikes;
 	}
-	
+
 	public Short copyWithLikes_And_Token( int totLikes) {
 		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(id, timestamp));
 		return new Short( id, ownerId, urlWithToken, timestamp, totLikes);
-	}	
+	}
 }
