@@ -54,7 +54,8 @@ public class JavaShorts implements Shorts {
             var shortId = format("%s+%s", userId, UUID.randomUUID());
             var blobUrl = format("%s/%s/%s", TukanoRestServer.serverURI, Blobs.NAME, shortId);
             var shrt = new Short(shortId, userId, blobUrl);
-            Cache.insertIntoCache("short", shortId, s);
+
+            Cache.insertIntoCache("short", shortId, shrt);
 
             if (nosql) {
                 return errorOrValue(
@@ -105,21 +106,24 @@ public class JavaShorts implements Shorts {
         return errorOrResult(getShort(shortId), shrt -> {
 
             return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
-                Cache.removeFromCache("short", shortId);
+
                 if (nosql) {
-                    var res = DB.deleteOne(shrt);
+                    DB.deleteOne(shrt);
                 } else {
                     PostgreDB.deleteOne(shrt);
                 }
-
+                Cache.removeFromCache("short", shortId);
+                Log.info(() -> format("Deleted short %s\n", shortId));
                 var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
+                String query2 = "SELECT * FROM Likes WHERE shortId = '%s'";
                 List<Likes> itemsToDelete;
 
                 if (nosql) {
                     itemsToDelete = DB.sql(query, Likes.class);
                 } else {
                     try {
-                        itemsToDelete = PostgreDB.sql(Likes.class, query);
+                        //itemsToDelete = PostgreDB.sql(Likes.class, query2);
+                        itemsToDelete = PostgreDB.sql(Likes.class, query2, shortId);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -129,9 +133,7 @@ public class JavaShorts implements Shorts {
                     if (nosql) {
                         DB.deleteOne(like);
                     } else {
-
                         PostgreDB.deleteOne(like);
-
                     }
                 }
 
@@ -150,12 +152,13 @@ public class JavaShorts implements Shorts {
         Log.info(() -> format("getShorts : userId = %s\n", userId));
 
         var query = format("SELECT s.shortId FROM Short s WHERE s.ownerId = '%s'", userId);
+        var query2 = "SELECT * FROM Short WHERE ownerId = '%s'";
         if (nosql)
             return errorOrValue(okUser(userId), DB.sql(query, Short.class)
                     .stream().map(Short::getShortId).collect(Collectors.toList()));
         else {
             try {
-                return errorOrValue(okUser(userId), PostgreDB.sql(Short.class, query)
+                return errorOrValue(okUser(userId), PostgreDB.sql(Short.class, query2, userId)
                         .stream().map(Short::getShortId).collect(Collectors.toList()));
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -183,12 +186,13 @@ public class JavaShorts implements Shorts {
         Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
 
         var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
+        var query2 = "SELECT * FROM Following WHERE followee = '%s'";
         if (nosql)
             return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
                     .stream().map(Following::getFollower).collect(Collectors.toList()));
         else {
             try {
-                return errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, query)
+                return errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, query2, userId)
                         .stream().map(Following::getFollower).collect(Collectors.toList()));
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -223,13 +227,15 @@ public class JavaShorts implements Shorts {
         return errorOrResult(getShort(shortId), shrt -> {
 
             var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
+            var query2 = "SELECT * FROM Likes WHERE shortId = '%s'";
 
             if (nosql)
                 return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
                         .stream().map(Likes::getUserId).collect(Collectors.toList()));
             else {
                 try {
-                    return errorOrValue(okUser(shrt.getOwnerId(), password), PostgreDB.sql(Likes.class, query)
+                    Log.info("USER:   " + okUser(shrt.getOwnerId(), password).toString());
+                    return errorOrValue(okUser(shrt.getOwnerId(), password), PostgreDB.sql(Likes.class, query2, shortId)
                             .stream().map(Likes::getUserId).collect(Collectors.toList()));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -359,12 +365,13 @@ public class JavaShorts implements Shorts {
 
         // delete likes
         var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
+        var query3_post = "SELECT * FROM Likes WHERE ownerId = '%s' OR userId = '%s'";
         List<Likes> res3;
         try {
             if (nosql) {
                 res3 = DB.sql(query3, Likes.class);
             } else {
-                res3 = PostgreDB.sql(Likes.class, query3);
+                res3 = PostgreDB.sql(Likes.class, query3_post, userId, userId);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -14,13 +15,15 @@ import org.hibernate.exception.ConstraintViolationException;
 import tukano.api.Result;
 import tukano.api.Result.ErrorCode;
 
+import static java.lang.String.format;
+
 /**
  * A helper class to perform POJO (Plain Old Java Objects) persistence, using
  * Hibernate and a backing relational database.
  *
  */
 public class Hibernate {
-//	private static Logger Log = Logger.getLogger(Hibernate.class.getName());
+	private static Logger Log = Logger.getLogger(Hibernate.class.getName());
 
 	//private static final String HIBERNATE_CFG_FILE = "../../webapp/WEB-INF/hibernate.cfg.xml";
 	private SessionFactory sessionFactory;
@@ -83,6 +86,7 @@ public class Hibernate {
 	}
 
 	public <T> List<T> sql(String sqlStatement, Class<T> clazz) {
+		Log.info(() -> format("Query2: %s\n", sqlStatement));
 		try (var session = sessionFactory.openSession()) {
 			var query = session.createNativeQuery(sqlStatement, clazz);
 			return query.list();

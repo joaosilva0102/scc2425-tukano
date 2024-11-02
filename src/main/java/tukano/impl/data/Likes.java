@@ -1,12 +1,16 @@
 package tukano.impl.data;
 
-import java.util.Objects;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+import java.util.Objects;
 
 @Entity
 public class Likes {
+
+	String id;
 
 	@Id
 	String userId;
@@ -27,10 +31,15 @@ public class Likes {
 	public Likes() {}
 
 	public Likes(String userId, String shortId, String ownerId) {
+		this.id = userId;
 		this.userId = userId;
 		this.shortId = shortId;
 		this.ownerId = ownerId;
 	}
+
+	public String getId() {return id; }
+
+	public void setId(String id) { this.id = id; }
 
 	public String getUserId() {
 		return userId;
