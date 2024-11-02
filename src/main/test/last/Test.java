@@ -38,7 +38,7 @@ public class Test {
 		*
 		 */
 
-		/*System.out.println("***************TEST USERS************************");
+		System.out.println("***************TEST USERS************************");
 
 		 show(users.createUser( new User("wales", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 		 
@@ -49,13 +49,13 @@ public class Test {
 		 show(users.searchUsers(""));
 
 		 show(users.deleteUser("wales", "12345"));
-		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null*/
+		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null
 
 		/*
 		* TEST SHORTS
 		*
 		 */
-		/*System.out.println("***************TEST SHORTS 1 ************************");
+		System.out.println("***************TEST SHORTS 1 ************************");
 		Result<Short> s1, s3;
 		show(users.createUser( new User("wales1", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 
@@ -88,7 +88,7 @@ public class Test {
 		show(shorts.followers("liskov1", "54321"));
 
 		show(users.deleteUser("liskov1", "54321"));//Check if all shorts are deleted
-		show(users.deleteUser("jb", "54321"));//Check if all shorts are deleted*/
+		show(users.deleteUser("jb", "54321"));//Check if all shorts are deleted
 
 
 		System.out.println("***************TEST SHORTS 2 ************************");
