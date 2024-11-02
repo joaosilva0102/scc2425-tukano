@@ -1,41 +1,26 @@
 package utils.PostgreSQL;
 
 import com.azure.cosmos.CosmosException;
-
-import com.azure.cosmos.models.PartitionKey;
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Short;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.sql.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.function.Supplier;
 
 /**
- *
  * Inspired by https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/quickstart-app-stacks-java
+ * Trying to solve connection issues with https://stackoverflow.com/questions/38545507/postgresql-close-connection-after-method-has-finished
  */
-
 
 public class CosmosPostgresDB<T> {
     private static final Logger log = Logger.getLogger(CosmosPostgresDB.class.getName());
-    private static Connection connection;
     private static CosmosPostgresDB<?> instance;
 
-    /*public CosmosPostgresDB(){
-        initializeConnection();
-    }*/
-
-    // Private constructor for singleton
     private CosmosPostgresDB() {
         initializeConnection();
     }
@@ -53,184 +38,289 @@ public class CosmosPostgresDB<T> {
     }
 
     private static void initializeConnection() {
-        try {
+        try (Connection connection = DbUtil.getDataSource().getConnection()) {
             log.info("Initializing database connection...");
             if (connection == null || connection.isClosed()) {
-                connection = DbUtil.getDataSource().getConnection();
-                if (connection == null) {
-                    throw new SQLException("Failed to obtain connection from data source");
-                }
-                log.info("Database connection initialized successfully");
-                initializeSchema();
+                throw new SQLException("Failed to obtain connection from data source");
             }
+            log.info("Database connection initialized successfully");
+            initializeSchema(connection);
         } catch (SQLException e) {
             log.severe("Failed to initialize connection: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Database connection failed", e);
         }
     }
 
-    private static void initializeSchema() {
+    private static void initializeSchema(Connection connection) {
         log.info("Connecting to the database");
-        try {
-            log.info("Connecting to the database");
-            Connection connection = DbUtil.getDataSource().getConnection();
-            System.out.println("The Connection Object is of Class: " + connection.getClass());
-            log.info("Database connection test: " + connection.getCatalog());
-            log.info("Creating table");
-            log.info("Creating index");
-            log.info("distributing table");
-            Scanner scanner = new Scanner(DemoApplication.class.getClassLoader().getResourceAsStream("schema.sql"));
-            Statement statement = connection.createStatement();
+        try (Scanner scanner = new Scanner(DemoApplication.class.getClassLoader().getResourceAsStream("schema.sql"));
+             Statement statement = connection.createStatement()) {
+
             while (scanner.hasNextLine()) {
                 statement.execute(scanner.nextLine());
             }
-
             log.info("Schema initialization completed successfully");
+
         } catch (SQLException e) {
             log.log(Level.WARNING, "Failed to initialize schema: ", e);
             throw new RuntimeException("Database initialization failed", e);
         }
     }
 
-    public static Result<?> insertUser(User user) {
-        checkConnection();
+    public static <T> Result<T> insertOne(T entity) {
+        log.info("Inserting data");
+        return switch (entity.getClass().getSimpleName()) {
+            case "User" -> (Result<T>) insertUser((User) entity);
+            case "Short" -> (Result<T>) insertShort((Short) entity);
+            default -> {
+                log.info("Entity not recognized: " + entity.getClass().getSimpleName());
+                yield Result.error(Result.ErrorCode.BAD_REQUEST);
+            }
+        };
+    }
+
+    private static Result<User> insertUser(User user) {
         log.info("Inserting user");
-        try (PreparedStatement insertStatement = connection.prepareStatement(
-                "INSERT INTO users(userId, email, password, displayName) VALUES (?, ?, ?, ?) ON CONFLICT (userId) DO NOTHING;"
-        )) {
+        String sql = "INSERT INTO users(userId, email, password, displayName) VALUES (?, ?, ?, ?) ON CONFLICT (userId) DO NOTHING;";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement insertStatement = connection.prepareStatement(sql)) {
+
             insertStatement.setString(1, user.getUserId());
             insertStatement.setString(2, user.getEmail());
             insertStatement.setString(3, user.getPwd());
             insertStatement.setString(4, user.getDisplayName());
             insertStatement.executeUpdate();
-            log.info("User inserted successfully");
             return Result.ok(user);
+
         } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to insert user", e);
             return Result.error(Result.ErrorCode.INTERNAL_ERROR);
         }
     }
 
-    private static void checkConnection() {
-        try {
-            if (connection == null || connection.isClosed()) {
-                log.info("Reconnecting to database");
-                connection = DbUtil.getDataSource().getConnection();
-                initializeSchema();
-            }
-        } catch (SQLException e) {
-            log.info("Failed to check connection: " + e);
-            throw new RuntimeException("Database connection check failed", e);
-        }
-    }
-    public static Short insertShort(Short shortObj) {
-        try {
-            PreparedStatement insertStatement = connection.prepareStatement("INSERT INTO shorts(id, ownerId, blobUrl, timestamp, totalLikes ) VALUES (?, ?, ?, ?, ?)");
+    private static Result<Short> insertShort(Short shortObj) {
+        String sql = "INSERT INTO shorts(id, ownerId, blobUrl, timestamp, totalLikes) VALUES (?, ?, ?, ?, ?)";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement insertStatement = connection.prepareStatement(sql)) {
+
             insertStatement.setString(1, shortObj.getShortId());
             insertStatement.setString(2, shortObj.getOwnerId());
             insertStatement.setString(3, shortObj.getBlobUrl());
             insertStatement.setLong(4, shortObj.getTimestamp());
             insertStatement.setInt(5, shortObj.getTotalLikes());
             insertStatement.executeUpdate();
-            return Result.ok(shortObj).value();
+            return Result.ok(shortObj);
+
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.log(Level.SEVERE, "Failed to insert short", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
         }
     }
 
-    public static <T> Result<T> insertOne(T entity) throws SQLException, IllegalAccessException {
-        PreparedStatement insertStatement = connection.prepareStatement("INSERT INTO ? VALUES (?)");
-        Field[] fields = entity.getClass().getDeclaredFields(); //be careful with the order of things
-        insertStatement.setString(1, entity.getClass().getName());
-
-        for (int i = 1; i < fields.length+1; i++) {
-            Field field = fields[i];
-            field.setAccessible(true);
-            Object value = field.get(entity);
-
-            if (value instanceof Integer) {
-                insertStatement.setInt(i + 1, (Integer) value);
-            } else if (value instanceof String) {
-                insertStatement.setString(i + 1, (String) value);
-            } else if (value instanceof Double) {
-                insertStatement.setDouble(i + 1, (Double) value);
-            } else if (value instanceof Boolean) {
-                insertStatement.setBoolean(i + 1, (Boolean) value);
-            } else if (value instanceof Float) {
-                insertStatement.setFloat(i + 1, (Float) value);
-            } else if (value instanceof Long) {
-                insertStatement.setLong(i + 1, (Long) value);
-            } else {
-                throw new SQLException("Unsupported field type: " + field.getType());
+    public static <T> Result<T> getOne(String id, Class<T> clazz) {
+        log.info("Fetching data");
+        return switch (clazz.getSimpleName()) {
+            case "User" -> (Result<T>) getUserById(id);
+            case "Short" -> (Result<T>) getShortById(id);
+            default -> {
+                log.info("Entity not recognized: " + clazz.getSimpleName());
+                yield Result.error(Result.ErrorCode.BAD_REQUEST);
             }
-        }
-
-        return insertStatement.executeUpdate() != 0 ? Result.ok() : Result.error(Result.ErrorCode.BAD_REQUEST);
+        };
     }
 
-    public static <T> Result<T> getOne(String id, Class<T> clazz) throws SQLException {
-        log.info("Read data");
-        PreparedStatement readStatement = connection.prepareStatement("SELECT * FROM ? WHERE id = ?");
-        readStatement.setString(1, clazz.getName());
-        readStatement.setString(2, id);
-        ResultSet resultSet = readStatement.executeQuery();
-        if (!resultSet.next()) {
-            log.info("There is no data in the database!");
-            return Result.error(Result.ErrorCode.NOT_FOUND);
-        }
-        return Result.ok(resultSet.getObject(1, clazz));
-    }
+    private static Result<User> getUserById(String id) {
+        String sql = "SELECT * FROM users WHERE userId = ?";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement readStatement = connection.prepareStatement(sql)) {
 
-    public static <T> Result <T> updateOne(T entity) throws SQLException {
-        log.info("Update data");
-        PreparedStatement updateStatement = connection.prepareStatement("UPDATE ? SET ?");
-        ResultSet resultSet = updateStatement.executeQuery();
-        if (!resultSet.next()) {
-            log.info("There is no data in the database!");
-            return Result.error(Result.ErrorCode.NOT_FOUND);
-        }
-        return Result.ok(/* TODO */);
-    }
-
-    public static<T> Result<?> deleteOne(T entity) throws SQLException {
-        log.info("Delete data");
-        PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM ? WHERE id = ?");
-//        deleteStatement.setString(1, obj.getId());
-        Field[] fields = entity.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            if (field.getName().equals("id")) {
-                deleteStatement.setString(2, field.toString());
+            readStatement.setString(1, id);
+            ResultSet resultSet = readStatement.executeQuery();
+            if (resultSet.next()) {
+                User user = new User(
+                        resultSet.getString("userId"),
+                        resultSet.getString("email"),
+                        resultSet.getString("password"),
+                        resultSet.getString("displayName"));
+                return Result.ok(user);
             }
-        }
-        ResultSet resultSet = deleteStatement.executeQuery();
-        if (!resultSet.next()) {
-            log.info("There is no data in the database!");
             return Result.error(Result.ErrorCode.NOT_FOUND);
+
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to fetch user by ID", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
         }
-        return Result.ok(/* TODO */);
+    }
+
+    private static Result<Short> getShortById(String id) {
+        String sql = "SELECT * FROM shorts WHERE id = ?";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement readStatement = connection.prepareStatement(sql)) {
+
+            readStatement.setString(1, id);
+            ResultSet resultSet = readStatement.executeQuery();
+            if (resultSet.next()) {
+                Short shortObj = new Short(
+                        resultSet.getString("id"),
+                        resultSet.getString("ownerId"),
+                        resultSet.getString("blobUrl"),
+                        resultSet.getLong("timestamp"),
+                        resultSet.getInt("totalLikes"));
+                return Result.ok(shortObj);
+            }
+            return Result.error(Result.ErrorCode.NOT_FOUND);
+
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to fetch short by ID", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    public static <T> Result<T> updateOne(T entity) {
+        log.info("Updating data");
+        return switch (entity.getClass().getSimpleName()) {
+            case "User" -> (Result<T>) updateUser((User) entity);
+            case "Short" -> (Result<T>) updateShort((Short) entity);
+            default -> {
+                log.info("Entity not recognized: " + entity.getClass().getSimpleName());
+                yield Result.error(Result.ErrorCode.BAD_REQUEST);
+            }
+        };
+    }
+
+    private static Result<User> updateUser(User user) {
+        String sql = "UPDATE users SET email = ?, password = ?, displayName = ? WHERE userId = ?";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement updateStatement = connection.prepareStatement(sql)) {
+
+            updateStatement.setString(1, user.getEmail());
+            updateStatement.setString(2, user.getPwd());
+            updateStatement.setString(3, user.getDisplayName());
+            updateStatement.setString(4, user.getUserId());
+            updateStatement.executeUpdate();
+            return Result.ok(user);
+
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to update user", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    private static Result<Short> updateShort(Short shortObj) {
+        String sql = "UPDATE shorts SET ownerId = ?, blobUrl = ?, timestamp = ?, totalLikes = ? WHERE id = ?";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement updateStatement = connection.prepareStatement(sql)) {
+
+            updateStatement.setString(1, shortObj.getOwnerId());
+            updateStatement.setString(2, shortObj.getBlobUrl());
+            updateStatement.setLong(3, shortObj.getTimestamp());
+            updateStatement.setInt(4, shortObj.getTotalLikes());
+            updateStatement.setString(5, shortObj.getShortId());
+            updateStatement.executeUpdate();
+            return Result.ok(shortObj);
+
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to update short", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    public static <T> Result<T> deleteOne(T entity) {
+        log.info("Deleting data");
+        return switch (entity.getClass().getSimpleName()) {
+            case "User" -> (Result<T>) deleteUser((User) entity);
+            case "Short" -> (Result<T>) deleteShort((Short) entity);
+            default -> {
+                log.info("Entity not recognized: " + entity.getClass().getSimpleName());
+                yield Result.error(Result.ErrorCode.BAD_REQUEST);
+            }
+        };
+    }
+
+    private static Result<User> deleteUser(User user) {
+        String sql = "DELETE FROM users WHERE userId = ?";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement deleteStatement = connection.prepareStatement(sql)) {
+
+            deleteStatement.setString(1, user.getUserId());
+            deleteStatement.executeUpdate();
+            return Result.ok(user);
+
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to delete user", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    private static Result<Short> deleteShort(Short shortObj) {
+        String sql = "DELETE FROM shorts WHERE id = ?";
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement deleteStatement = connection.prepareStatement(sql)) {
+
+            deleteStatement.setString(1, shortObj.getShortId());
+            deleteStatement.executeUpdate();
+            return Result.ok(shortObj);
+
+        } catch (SQLException e) {
+            log.log(Level.SEVERE, "Failed to delete short", e);
+            return Result.error(Result.ErrorCode.INTERNAL_ERROR);
+        }
     }
 
     public static <T> List<T> query(Class<T> clazz, String queryStr) throws SQLException {
         log.info("Querying data");
-        PreparedStatement queryStatement = connection.prepareStatement(queryStr);
-        List<T> items = new ArrayList<>();
+        try (Connection connection = DbUtil.getDataSource().getConnection();
+             PreparedStatement queryStatement = connection.prepareStatement(queryStr);
+             ResultSet rs = queryStatement.executeQuery()) {
 
-        try (ResultSet rs = queryStatement.executeQuery()) {
-            while (rs.next()) items.add(rs.unwrap(clazz)); // TODO Probably wrong, not tested
+            List<T> items = new ArrayList<>();
+            while (rs.next()) items.add(rs.unwrap(clazz));
+            return items;
         }
-        return items;
     }
 
+    public List<User> queryByPattern(String sqlQuery, String pattern) throws SQLException {
+        log.info("Querying users by pattern: " + pattern);
+        List<User> users = new ArrayList<>();
+
+        try (Connection connection = DbUtil.getDataSource().getConnection()) {
+            if (pattern == null || pattern.trim().isEmpty()) {
+                sqlQuery = "SELECT * FROM public.users";
+            }
+            PreparedStatement queryStatement = connection.prepareStatement(sqlQuery);
+                if (pattern != null && !pattern.trim().isEmpty()) {
+                    String formattedPattern = "%" + pattern.toUpperCase() + "%";
+                    queryStatement.setString(1, formattedPattern);
+                }
+
+                ResultSet rs = queryStatement.executeQuery();
+                while (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getString("id"));
+                    user.setUserId(rs.getString("userId"));
+                    user.setEmail(rs.getString("email"));
+                    user.setPwd(rs.getString("password"));
+                    user.setDisplayName(rs.getString("displayName"));
+
+                    users.add(user);
+                }
+            }
+         catch (Exception e) {
+            log.severe("Failed to query users by pattern: " + e.getMessage());
+            throw new SQLException("Failed to query users by pattern", e);
+        }
+        return users;
+    }
+
+
+    // Error handling utility
     <T> Result<T> tryCatch(Supplier<T> supplierFunc) {
         try {
             return Result.ok(supplierFunc.get());
         } catch (CosmosException ce) {
-            System.err.println(ce.getMessage());
+            log.severe(ce.getMessage());
             return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-        } /*catch (Exception x) {
-			x.printStackTrace();
-			return Result.error(ErrorCode.INTERNAL_ERROR);
-		}*/
+        }
     }
 
     static Result.ErrorCode errorCodeFromStatus(int status) {

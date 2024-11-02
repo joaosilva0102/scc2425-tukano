@@ -8,6 +8,10 @@ import java.util.Properties;
 import javax.sql.DataSource;
 import com.zaxxer.hikari.HikariDataSource;
 
+/**
+ * Inspired by https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/quickstart-app-stacks-java
+ */
+
 public class DbUtil {
     private static final String DB_USERNAME = "db.username";
     private static final String DB_PASSWORD = "db.password";
@@ -28,12 +32,14 @@ public class DbUtil {
             datasource.setJdbcUrl(properties.getProperty(DB_URL));
             datasource.setUsername(properties.getProperty(DB_USERNAME));
             datasource.setPassword(properties.getProperty(DB_PASSWORD));
-            datasource.setMinimumIdle(5);
-            datasource.setMaximumPoolSize(15);
+            datasource.setMinimumIdle(2);
+            datasource.setMaximumPoolSize(20);
             datasource.setIdleTimeout(15000);    // 15 seconds
             datasource.setMaxLifetime(180000);   // 3 minutes
             datasource.setConnectionTimeout(30000);
+            datasource.setLeakDetectionThreshold(60000); // 1 minute
             datasource.setAutoCommit(true);
+
 
             datasource.addDataSourceProperty("ssl", "true");
             datasource.addDataSourceProperty("sslmode", "require");

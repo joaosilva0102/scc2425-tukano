@@ -24,7 +24,7 @@ public class JavaUsers implements Users {
 
 	private static Users instance;
 	private boolean nosql = false;
-	private static CosmosPostgresDB postgre = CosmosPostgresDB.getInstance();
+	private static CosmosPostgresDB<Object> postgre = CosmosPostgresDB.getInstance();
 
 	synchronized public static Users getInstance() {
 		if (instance == null)
@@ -46,11 +46,8 @@ public class JavaUsers implements Users {
 
 		if(nosql)
 			return errorOrValue(DB.insertOne(user), user.getUserId());
-		else{
-
-				return errorOrValue(postgre.insertUser(user), user.getUserId());
-
-        }
+		else
+			return errorOrValue(postgre.insertOne(user), user.getUserId());
 	}
 
 	@Override
@@ -64,13 +61,9 @@ public class JavaUsers implements Users {
 		if (!user.isOK()) {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
-			else {
-                try {
-                    user = CosmosPostgresDB.getOne(userId, User.class);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+			else
+				user = postgre.getOne(userId, User.class);
+
 			if(user.isOK()) Cache.insertIntoCache("user",
 					user.value().getUserId(), user.value());
 		}
@@ -87,14 +80,9 @@ public class JavaUsers implements Users {
 		Result<User> user = Cache.getFromCache("user", userId, User.class);
 		if(!user.isOK()) {
 			if(nosql)
-				user = DB.updateOne(other);
-			else {
-                try {
-                    user = CosmosPostgresDB.updateOne(other);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+				user = DB.getOne(userId, User.class);
+			else
+				user = postgre.getOne(userId, User.class);
 		}
 		return errorOrResult(validatedUserOrError(user, pwd),
 				usr -> {
@@ -102,13 +90,8 @@ public class JavaUsers implements Users {
 						return error(BAD_REQUEST);
 					if(nosql)
 						return DB.updateOne(other);
-					else {
-						try {
-							return CosmosPostgresDB.updateOne(other);
-						} catch (SQLException e) {
-							throw new RuntimeException(e);
-						}
-					}
+					else
+                        return postgre.updateOne(other);
 				});
 	}
 
@@ -124,13 +107,8 @@ public class JavaUsers implements Users {
 		if (!user.isOK()) {
 			if(nosql)
 				user = DB.getOne(userId, User.class);
-			else {
-                try {
-                    user = CosmosPostgresDB.getOne(userId, User.class);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+			else
+				user = postgre.getOne(userId, User.class);
 		}
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
@@ -146,13 +124,8 @@ public class JavaUsers implements Users {
 
 			if(nosql)
 				return (Result<User>) DB.deleteOne(usr);
-			else{
-                try {
-                    return (Result<User>) CosmosPostgresDB.deleteOne(usr);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+			else
+				return postgre.deleteOne(usr);
 		});
 	}
 
@@ -161,6 +134,7 @@ public class JavaUsers implements Users {
 		Log.info(() -> format("searchUsers : patterns = %s\n", pattern));
 
 		var query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
+		var sqlQuery = "SELECT * FROM public.users WHERE UPPER(id) LIKE '%' || UPPER(?) || '%';";
 		List<User> hits;
 		if(nosql) {
 			hits = DB.sql(query, User.class)
@@ -170,7 +144,10 @@ public class JavaUsers implements Users {
 		}
 		else{
             try {
-                hits = CosmosPostgresDB.query(User.class, query);
+                hits = postgre.queryByPattern( sqlQuery, pattern)
+						.stream()
+						.map(User::copyWithoutPassword)
+						.toList();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }

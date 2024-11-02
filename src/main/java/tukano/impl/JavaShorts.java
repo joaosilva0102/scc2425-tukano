@@ -29,9 +29,8 @@ import utils.PostgreSQL.CosmosPostgresDB;
 public class JavaShorts implements Shorts {
 
     private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
-
+    private static CosmosPostgresDB<Object> postgre = CosmosPostgresDB.getInstance();
     private static Shorts instance;
-    //private CosmosPostgresDB<Object> postgresDB = CosmosPostgresDB.getInstance();
     private boolean nosql = false;
 
     synchronized public static Shorts getInstance() {
@@ -62,15 +61,11 @@ public class JavaShorts implements Shorts {
                             return s.copyWithLikes_And_Token(0);
                         });
             } else {
-                try {
-                    return errorOrValue(
-                            CosmosPostgresDB.insertOne(shrt), s -> {
-                                Cache.insertIntoCache("short", shortId, s);
-                                return s.copyWithLikes_And_Token(0);
-                            });
-                } catch (SQLException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+                return errorOrValue(
+                        postgre.insertOne(shrt), s -> {
+                            Cache.insertIntoCache("short", shortId, s);
+                            return s.copyWithLikes_And_Token(0);
+                        });
             }
         });
     }
@@ -92,13 +87,9 @@ public class JavaShorts implements Shorts {
         if (!result.isOK()) {
             if (nosql)
                 result = DB.getOne(shortId, Short.class);
-            else {
-                try {
-                    result = CosmosPostgresDB.getOne(shortId, Short.class);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            else
+                result = postgre.getOne(shortId, Short.class);
+
         }
 //            Log.log(Level.WARNING, "AQUII: " + cacheRes);
 //            return errorOrValue(cacheRes.isOK() ? cacheRes : nosql ? DB.getOne(shortId, Short.class) : CosmosPostgresDB.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
@@ -116,11 +107,7 @@ public class JavaShorts implements Shorts {
                 if (nosql) {
                     var res = DB.deleteOne(shrt);
                 } else {
-                    try {
-                        CosmosPostgresDB.deleteOne(shrt);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
+                    postgre.deleteOne(shrt);
                 }
 
                 var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
@@ -130,7 +117,7 @@ public class JavaShorts implements Shorts {
                     itemsToDelete = DB.sql(query, Likes.class);
                 } else {
                     try {
-                        itemsToDelete = CosmosPostgresDB.query(Likes.class, query);
+                        itemsToDelete = postgre.query(Likes.class, query);
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
@@ -140,11 +127,9 @@ public class JavaShorts implements Shorts {
                     if (nosql) {
                         DB.deleteOne(like);
                     } else {
-                        try {
-                            CosmosPostgresDB.deleteOne(like);
-                        } catch (SQLException e) {
-                            throw new RuntimeException(e);
-                        }
+
+                        postgre.deleteOne(like);
+
                     }
                 }
 
@@ -168,7 +153,7 @@ public class JavaShorts implements Shorts {
                     .stream().map(Short::getShortId).collect(Collectors.toList()));
         else {
             try {
-                return errorOrValue(okUser(userId), CosmosPostgresDB.query(Short.class, query)
+                return errorOrValue(okUser(userId), postgre.query(Short.class, query)
                         .stream().map(Short::getShortId).collect(Collectors.toList()));
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -186,11 +171,7 @@ public class JavaShorts implements Shorts {
             if (nosql)
                 return errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
             else {
-                try {
-                    return errorOrVoid(okUser(userId2), isFollowing ? CosmosPostgresDB.insertOne(f) : CosmosPostgresDB.deleteOne(f));
-                } catch (SQLException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+                return errorOrVoid(okUser(userId2), isFollowing ? postgre.insertOne(f) : postgre.deleteOne(f));
             }
         });
     }
@@ -205,7 +186,7 @@ public class JavaShorts implements Shorts {
                     .stream().map(Following::getFollower).collect(Collectors.toList()));
         else {
             try {
-                return errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Following.class, query)
+                return errorOrValue(okUser(userId, password), postgre.query(Following.class, query)
                         .stream().map(Following::getFollower).collect(Collectors.toList()));
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -226,11 +207,7 @@ public class JavaShorts implements Shorts {
         } else {
             return errorOrResult(getShort(shortId), shrt -> {
                 var l = new Likes(userId, shortId, shrt.getOwnerId());
-                try {
-                    return errorOrVoid(okUser(userId, password), isLiked ? CosmosPostgresDB.insertOne(l) : CosmosPostgresDB.deleteOne(l));
-                } catch (SQLException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+                return errorOrVoid(okUser(userId, password), isLiked ? postgre.insertOne(l) : postgre.deleteOne(l));
             });
 
         }
@@ -250,7 +227,7 @@ public class JavaShorts implements Shorts {
                         .stream().map(Likes::getUserId).collect(Collectors.toList()));
             else {
                 try {
-                    return errorOrValue(okUser(shrt.getOwnerId(), password), CosmosPostgresDB.query(Likes.class, query)
+                    return errorOrValue(okUser(shrt.getOwnerId(), password), postgre.query(Likes.class, query)
                             .stream().map(Likes::getUserId).collect(Collectors.toList()));
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
@@ -273,7 +250,7 @@ public class JavaShorts implements Shorts {
                     .stream().map(Following::getFollowee).collect(Collectors.toList()));
         else {
             try {
-                result = errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Following.class, format(QUERY_1_FMT, userId))
+                result = errorOrValue(okUser(userId, password), postgre.query(Following.class, format(QUERY_1_FMT, userId))
                         .stream().map(Following::getFollowee).collect(Collectors.toList()));
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -303,7 +280,7 @@ public class JavaShorts implements Shorts {
                     .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
         } else {
             try {
-                return errorOrValue(okUser(userId, password), CosmosPostgresDB.query(Short.class, format(QUERY_2_FMT, usersFormated))
+                return errorOrValue(okUser(userId, password), postgre.query(Short.class, format(QUERY_2_FMT, usersFormated))
                         .stream().map(Short -> Short.getShortId()).collect(Collectors.toList()));
                 //.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
             } catch (SQLException e) {
@@ -338,7 +315,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 res1 = DB.sql(query1, Short.class);
             } else {
-                res1 = CosmosPostgresDB.query(Short.class, query1);
+                res1 = postgre.query(Short.class, query1);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -348,11 +325,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 deleteSuccess = DB.deleteOne(s).isOK();
             } else {
-                try {
-                    deleteSuccess = CosmosPostgresDB.deleteOne(s).isOK();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+                deleteSuccess = postgre.deleteOne(s).isOK();
             }
             if (!deleteSuccess)
                 return error(BAD_REQUEST);
@@ -365,7 +338,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 res2 = DB.sql(query2, Following.class);
             } else {
-                res2 = CosmosPostgresDB.query(Following.class, query2);
+                res2 = postgre.query(Following.class, query2);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -376,11 +349,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 deleteSuccess = DB.deleteOne(f).isOK();
             } else {
-                try {
-                    deleteSuccess = CosmosPostgresDB.deleteOne(f).isOK();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+                deleteSuccess = postgre.deleteOne(f).isOK();
             }
             if (!deleteSuccess)
                 return error(BAD_REQUEST);
@@ -393,7 +362,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 res3 = DB.sql(query3, Likes.class);
             } else {
-                res3 = CosmosPostgresDB.query(Likes.class, query3);
+                res3 = postgre.query(Likes.class, query3);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -404,11 +373,7 @@ public class JavaShorts implements Shorts {
             if (nosql) {
                 deleteSuccess = DB.deleteOne(l).isOK();
             } else {
-                try {
-                    deleteSuccess = CosmosPostgresDB.deleteOne(l).isOK();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+                deleteSuccess = postgre.deleteOne(l).isOK();
             }
             if (!deleteSuccess)
                 return error(BAD_REQUEST);

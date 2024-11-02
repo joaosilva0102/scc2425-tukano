@@ -46,10 +46,10 @@ public class Test {
 		 
 		 show(users.updateUser("wales", "12345", new User("wales", "12345", "jimmy@wikipedia.com", "ola" ) ));
 
-		 //show(users.searchUsers(""));
+		 show(users.searchUsers(""));
 
-		 //show(users.deleteUser("wales", "12345"));
-		 //show(users.deleteUser("liskov", "54321"));//TODO:delete dá null
+		 show(users.deleteUser("wales", "12345"));
+		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null
 
 		/*
 		* TEST SHORTS
