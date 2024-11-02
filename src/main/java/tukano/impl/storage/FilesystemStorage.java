@@ -72,7 +72,12 @@ public class FilesystemStorage implements BlobStorage {
 		IO.read( file, CHUNK_SIZE, sink );
 		return ok();
 	}
-	
+
+	@Override
+	public Result<Void> deleteAll(String path) {
+		return delete(path);
+	}
+
 	@Override
 	public Result<Void> delete(String path) {
 		if (path == null)

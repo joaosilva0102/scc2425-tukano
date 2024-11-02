@@ -5,13 +5,26 @@
 	<groupId>scc2425</groupId>
 	<artifactId>tukano</artifactId>
 	<version>1</version>
+	<packaging>war</packaging>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<authors>xxxxx-xxxxx</authors>
+		<authors>62612-70373</authors>
+		<java.version>23</java.version>
+		<azure.functions.maven.plugin.version>1.19.0</azure.functions.maven.plugin.version>
+		<azure.functions.java.library.version>3.1.0</azure.functions.java.library.version>
+		<functionAppName>fun70373northeurope</functionAppName>
+		<functionRegion>northeurope</functionRegion>
+		<functionStorageAccountName>sto70373northeurope</functionStorageAccountName>
+		<functionResourceGroup>rg70373-northeurope</functionResourceGroup>
 	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.4.0</version>
+            </plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
@@ -22,7 +35,7 @@
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
-					<archive></archive>
+					<archive/>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
@@ -35,7 +48,7 @@
 				<configuration>
 					<images>
 						<image>
-							<name>smduarte/${project.artifactId}</name>
+							<name>${authors}/${project.artifactId}</name>
 							<build>
 								<dockerFile>${project.basedir}/Dockerfile</dockerFile>
 							</build>
@@ -48,9 +61,53 @@
 				<artifactId>azure-webapp-maven-plugin</artifactId>  
 				<version>2.13.0</version>  
 			</plugin>
+            <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <url>http://maven:s3cret@127.0.0.1:8080/manager/text</url>
+                    <server>tomcat-docker</server>
+                    <update>true</update>
+                    <path>/</path>
+                    <username>maven</username>
+                    <password>s3cret</password>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 	<dependencies>
+		<dependency>
+			<groupId>com.microsoft.azure.functions</groupId>
+			<artifactId>azure-functions-java-library</artifactId>
+			<version>${azure.functions.java.library.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.11.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure.resourcemanager</groupId>
+			<artifactId>azure-resourcemanager</artifactId>
+			<version>2.43.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure.resourcemanager</groupId>
+			<artifactId>azure-resourcemanager-resources</artifactId>
+			<version>2.43.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure.resourcemanager</groupId>
+			<artifactId>azure-resourcemanager-storage</artifactId>
+			<version>2.43.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
+			<version>1.14.0</version>
+			<scope>compile</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
@@ -59,22 +116,22 @@
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
-			<version>3.1.5</version>
+			<version>3.1.9</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-jdk-http</artifactId>
-			<version>3.1.5</version>
+			<version>3.1.9</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.inject</groupId>
 			<artifactId>jersey-hk2</artifactId>
-			<version>3.1.5</version>
+			<version>3.1.9</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>jaxb-runtime</artifactId>
-			<version>4.0.4</version>
+			<version>4.0.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hsqldb</groupId>
@@ -82,15 +139,25 @@
 			<version>2.7.2</version>
 		</dependency>
 		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-core</artifactId>
-			<version>6.4.4.Final</version>
-		</dependency>
-		<dependency>
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
 			<version>1.3.2</version>
 		</dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.18.0</version>
+        </dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-storage-blob</artifactId>
@@ -111,5 +178,57 @@
 			<artifactId>slf4j-simple</artifactId>
 			<version>2.0.16</version>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-core</artifactId>
+            <version>6.2.10.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jaxb-provider</artifactId>
+            <version>6.2.10.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jackson2-provider</artifactId>
+            <version>6.2.10.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-servlet-initializer</artifactId>
+            <version>6.2.10.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>6.4.4.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-afterburner</artifactId>
+            <version>2.18.0</version>
+        </dependency>
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>5.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>5.7.1</version>
+			<scope>test</scope>
+		</dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.7.1</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 </project>

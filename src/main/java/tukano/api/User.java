@@ -1,12 +1,7 @@
 package tukano.api;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-
-@Entity
-public class User {
+public class User extends Entity{
 	
-	@Id
 	private String userId;
 	private String pwd;
 	private String email;	
@@ -15,9 +10,11 @@ public class User {
 	public User() {}
 	
 	public User(String userId, String pwd, String email, String displayName) {
+		super();
+		this.id = userId;
+		this.userId = userId;
 		this.pwd = pwd;
 		this.email = email;
-		this.userId = userId;
 		this.displayName = displayName;
 	}
 
@@ -25,6 +22,7 @@ public class User {
 		return userId;
 	}
 	public void setUserId(String userId) {
+		this.id = userId;
 		this.userId = userId;
 	}
 	public String getPwd() {
@@ -45,11 +43,11 @@ public class User {
 	public void setDisplayName(String displayName) {
 		this.displayName = displayName;
 	}
-	
-	public String userId() {
-		return userId;
-	}
-	
+
+	public String id() { return id; }
+
+	public String userId() { return userId; }
+
 	public String pwd() {
 		return pwd;
 	}
@@ -64,7 +62,7 @@ public class User {
 	
 	@Override
 	public String toString() {
-		return "User [userId=" + userId + ", pwd=" + pwd + ", email=" + email + ", displayName=" + displayName + "]";
+		return "User [id=" + id + ", userId=" + userId + " pwd=" + pwd + ", email=" + email + ", displayName=" + displayName + "]";
 	}
 	
 	public User copyWithoutPassword() {
@@ -72,7 +70,7 @@ public class User {
 	}
 	
 	public User updateFrom( User other ) {
-		return new User( userId, 
+		return new User( userId,
 				other.pwd != null ? other.pwd : pwd,
 				other.email != null ? other.email : email, 
 				other.displayName != null ? other.displayName : displayName);

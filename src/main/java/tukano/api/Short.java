@@ -1,7 +1,5 @@
 package tukano.api;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import tukano.impl.Token;
 
 /**
@@ -13,11 +11,8 @@ import tukano.impl.Token;
  * A short is timestamped when it is created.
  *
  */
-@Entity
-public class Short {
+public class Short extends Entity {
 	
-	@Id
-	String shortId;
 	String ownerId;
 	String blobUrl;
 	long timestamp;
@@ -27,7 +22,7 @@ public class Short {
 	
 	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
 		super();
-		this.shortId = shortId;
+		this.id = shortId;
 		this.ownerId = ownerId;
 		this.blobUrl = blobUrl;
 		this.timestamp = timestamp;
@@ -39,16 +34,14 @@ public class Short {
 	}
 	
 	public String getShortId() {
-		return shortId;
+		return id;
 	}
 
 	public void setShortId(String shortId) {
-		this.shortId = shortId;
+		this.id = shortId;
 	}
 
-	public String getOwnerId() {
-		return ownerId;
-	}
+	public String getOwnerId() { return ownerId; }
 
 	public void setOwnerId(String ownerId) {
 		this.ownerId = ownerId;
@@ -80,12 +73,12 @@ public class Short {
 
 	@Override
 	public String toString() {
-		return "Short [shortId=" + shortId + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
+		return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
 				+ timestamp + ", totalLikes=" + totalLikes + "]";
 	}
 	
-	public Short copyWithLikes_And_Token( long totLikes) {
-		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(blobUrl));
-		return new Short( shortId, ownerId, urlWithToken, timestamp, (int)totLikes);
+	public Short copyWithLikes_And_Token( int totLikes) {
+		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(id, timestamp));
+		return new Short( id, ownerId, urlWithToken, timestamp, totLikes);
 	}	
 }

@@ -14,4 +14,5 @@ public interface BlobStorage {
 
 	public Result<Void> read(String path, Consumer<byte[]> sink);
 
+	public Result<Void> deleteAll(String path);
 }

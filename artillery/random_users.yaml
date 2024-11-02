@@ -1,0 +1,53 @@
+config:
+  target: http://127.0.0.1:8080/rest
+  plugins:
+    metrics-by-endpoint: {} # Used to get metrics for each endpoint individually.
+  processor: ./test-utils.js
+  phases:
+  - name: "Warm up"    # WARM UP PHASE: duration: 10s, starting with 1 new client/sec up to 5 new clients/sec
+    duration: 10
+    arrivalRate: 1
+    rampTo: 5
+
+  - name: "Main test"    # MAIN TESTS: duration: 30s, with 10 new clients/sec. Should be varied depending on scenario.
+    duration: 30
+    arrivalRate: 10
+scenarios:
+  - name: 'Register user'
+    weight: 10
+    flow:
+      - post:
+          url: /users/
+          headers:
+            Content-Type: application/json
+            Accept: application/json
+          beforeRequest: "uploadRandomizedUser"
+          afterResponse: "processRegisterReply"
+
+  - name: 'Get user'
+    weight: 5
+    flow:
+      - get:
+          url: /users/{{ username }}?pwd={{ password }}
+          headers:
+            Accept: application/json
+          beforeRequest: "getUser"
+
+  - name: 'Create short'
+    weight: 3
+    flow:
+      - post:
+          url: /shorts/{{ username }}?pwd={{ password }}
+          headers:
+            Accept: application/json
+          beforeRequest: "getUser"
+          afterResponse: "processShortReply"
+
+  - name: 'Get short'
+    weight: 5
+    flow:
+      - get:
+          url: /shorts/{{ username }}
+          headers:
+            Accept: application/json
+          beforeRequest: "getShort"
