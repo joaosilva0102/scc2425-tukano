@@ -57,10 +57,10 @@ public class Test {
 		 */
 		System.out.println("***************TEST SHORTS 1 ************************");
 		Result<Short> s1, s3;
-		show(users.createUser( new User("wales1", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
+		show(users.createUser( new User("wales1", "12345", "jimmyafs@wikipedia.pt", "Jimmy Wsales") ));
 
-		show(users.createUser( new User("liskov1", "54321", "liskov@mit.edu", "Barbara Liskov") ));
-		show(users.createUser( new User("jb", "54321", "jb@mit.edu", "J B") ));
+		show(users.createUser( new User("liskov1", "54321", "liskasfov@mit.edu", "Barbaraas Liskov") ));
+		show(users.createUser( new User("jb", "54321", "jbasf@mit.edu", "J Bas") ));
 
 
 		show(s1 = shorts.createShort("liskov1", "54321"));
@@ -93,8 +93,8 @@ public class Test {
 
 		System.out.println("***************TEST SHORTS 2 ************************");
 		Result<Short> s4, s5;
-		show(users.createUser( new User("wales3", "123456", "jimmyn@wikipedia.pt", "Jimmy Walesn") ));
-		show(users.createUser( new User("jb3", "54321", "email@jb.pt", "jbb")));
+		show(users.createUser( new User("wales3", "123456", "jimmydn@wikipedia.pt", "Jimmy asfWalesn") ));
+		show(users.createUser( new User("jb3", "54321", "emaial@jb.pt", "jbasfb")));
 		show(s4 = shorts.createShort("wales3", "123456"));
 		show(s5 = shorts.createShort("wales3", "123456"));
 		var shortId4 = s4.value().getShortId();

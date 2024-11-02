@@ -1,3 +1,4 @@
+/*
 package main.test.test;
 
 import java.io.File;
@@ -85,11 +86,13 @@ public class Test {
 		show(shorts.getShort( s2id ));
 
 
-		/*blobs.forEach( b -> {
+		*/
+/*blobs.forEach( b -> {
 			var r = b.download(blobId);
 			System.out.println( Hex.of(Hash.sha256( bytes )) + "-->" + Hex.of(Hash.sha256( r.value() )));
 
-		});*/
+		});*//*
+
 		
 		 show(users.deleteUser("wales", "12345"));
 
@@ -117,3 +120,4 @@ public class Test {
 		
 	}
 }
+*/

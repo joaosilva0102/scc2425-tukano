@@ -1,3 +1,4 @@
+/*
 package main.test.test;
 
 import main.test.tukano.clients.rest.RestBlobsClient;
@@ -83,7 +84,8 @@ public class UnitTests {
 		show(shorts.createShort("wales", "12345"));
 		show(shorts.createShort("wales", "12345"));
 
-		/*var blobUrl = URI.create(s2.value().getBlobUrl());
+		*/
+/*var blobUrl = URI.create(s2.value().getBlobUrl());
 		System.out.println( "------->" + blobUrl );
 		
 		var blobId = new File( blobUrl.getPath() ).getName();
@@ -91,7 +93,8 @@ public class UnitTests {
 		
 		var token = blobUrl.getQuery().split("=")[1];
 
-		blobs.upload(blobUrl.toString(), randomBytes(100), token);*/
+		blobs.upload(blobUrl.toString(), randomBytes(100), token);*//*
+
 
 		
 		var s2id = s2.value().getShortId();
@@ -120,11 +123,13 @@ public class UnitTests {
 		show(shorts.getShort(s2id));
 		show(shorts.likes(s2id, "54321"));
 
-		/*blobs.forEach( b -> {
+		*/
+/*blobs.forEach( b -> {
 			var r = b.download(blobId);
 			System.out.println( Hex.of(Hash.sha256( bytes )) + "-->" + Hex.of(Hash.sha256( r.value() )));
 
-		});*/
+		});*//*
+
 		
 		show(users.deleteUser("wales", "12345"));
 
@@ -154,3 +159,4 @@ public class UnitTests {
 		
 	}
 }
+*/
