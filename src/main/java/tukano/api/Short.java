@@ -2,6 +2,7 @@ package tukano.api;
 
 import jakarta.persistence.Id;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import tukano.impl.Token;
 
 /**
@@ -15,10 +16,10 @@ import tukano.impl.Token;
  */
 @Entity
 public class Short {
-
 	@Id
-	String ownerId;
+	String shortId;
 	String id;
+	String ownerId;
 	String blobUrl;
 	long timestamp;
 	int totalLikes;
@@ -28,6 +29,7 @@ public class Short {
 
 	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
 		super();
+		this.shortId = shortId;
 		this.id = shortId;
 		this.ownerId = ownerId;
 		this.blobUrl = blobUrl;

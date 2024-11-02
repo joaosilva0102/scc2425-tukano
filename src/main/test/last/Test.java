@@ -55,7 +55,7 @@ public class Test {
 		* TEST SHORTS
 		*
 		 */
-		System.out.println("***************TEST SHORTS 1 ************************");
+		/*System.out.println("***************TEST SHORTS 1 ************************");
 		Result<Short> s1, s3;
 		show(users.createUser( new User("wales1", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 
@@ -73,7 +73,7 @@ public class Test {
 
 		var shortId = s3.value().getShortId();
 		System.out.println( "------->" + shortId );
-		show(shorts.deleteShort(s3.value().getShortId(), "54321"));
+		show(shorts.deleteShort(s3.value().getShortId(), "54321")); //FOrbidden
 		show(shorts.deleteShort(s3.value().getShortId(), "12345"));
 
 		show(users.deleteUser("wales1", "12345"));//Check if all shorts are deleted
@@ -88,7 +88,7 @@ public class Test {
 		show(shorts.followers("liskov1", "54321"));
 
 		show(users.deleteUser("liskov1", "54321"));//Check if all shorts are deleted
-		show(users.deleteUser("jb", "54321"));//Check if all shorts are deleted
+		show(users.deleteUser("jb", "54321"));//Check if all shorts are deleted*/
 
 
 		System.out.println("***************TEST SHORTS 2 ************************");
@@ -121,46 +121,11 @@ public class Test {
 		System.out.println("* Deletes *");
 		show(users.deleteUser("wales3", "123456"));//Check if all shorts are deleted
 		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted
+		show(users.getUser("jb3", "54321"));//Not found
+		show(users.getUser("wales3", "123"));//Not found
+		show(shorts.getShorts("jb3"));//Not found
+		show(shorts.getShorts("wales3"));//Not found
 
-
-		/*var shortId = s1.value().getShortId();
-		System.out.println( "------->" + shortId );
-		var blobUrl = URI.create(s1.value().getBlobUrl());
-		System.out.println( "------->" + blobUrl );
-		
-		var blobId = new File( blobUrl.getPath() ).getName();
-		System.out.println( "BlobID:" + blobId );
-		
-		var token = blobUrl.getQuery().split("=")[1];
-
-		blobs.upload(blobUrl.toString(), randomBytes(100), token);
-
-		
-		var s2id = s1.value().getShortId();
-		
-		show(shorts.follow("liskov", "wales", true, "54321"));
-		show(shorts.followers("wales", "12345"));
-		
-		show(shorts.like(s2id, "liskov", true, "54321"));
-		show(shorts.like(s2id, "liskov", true, "54321"));
-		show(shorts.likes(s2id , "54321"));
-		show(shorts.getFeed("liskov", "12345"));
-		show(shorts.getShort( s2id ));
-		
-		show(shorts.getShorts( "wales" ));
-		
-		show(shorts.followers("wales", "12345"));
-
-		show(shorts.getFeed("liskov", "12345"));
-
-		show(shorts.getShort( s2id ));*/
-
-
-		/*blobs( b -> {
-			var r = b.download(blobId);
-			System.out.println( Hex.of(Hash.sha256( bytes )) + "-->" + Hex.of(Hash.sha256( r.value() )));
-
-		});*/
 
 
 		System.exit(0);
