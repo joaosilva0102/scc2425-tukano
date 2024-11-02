@@ -41,12 +41,12 @@ public class JavaUsers implements Users {
 		if (badUserInfo(user))
 			return error(BAD_REQUEST);
 
-		if (Cache.isCached("user", user.getUserId()))
+		if (Cache.isCached(String.format(USER_FMT, user.getUserId())))
 			return error(CONFLICT);
 
 		Result<User> r = DB.insertOne(user);
 
-		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() &&
+		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
 			Log.info("Error inserting user into cache");
 
@@ -111,7 +111,7 @@ public class JavaUsers implements Users {
 				JavaBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
 			}).start();
 
-			return (Result<User>) DB.deleteOne(usr) ;
+            return (Result<User>) DB.deleteOne(usr) ;
 		});
 	}
 
@@ -128,6 +128,7 @@ public class JavaUsers implements Users {
 			return ok(l);
 		}
 
+		Log.info("List not in cache");
 		// If not in cache, access DB
 		var query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
 		var dbHits = DB.sql(query, User.class)

@@ -22,7 +22,7 @@ public class Likes {
 	public Likes() {}
 
 	public Likes(String userId, String shortId, String ownerId) {
-		this.id = userId;
+		this.id = userId + "_" + shortId;
 		this.userId = userId;
 		this.shortId = shortId;
 		this.ownerId = ownerId;

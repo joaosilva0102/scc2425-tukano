@@ -1,40 +1,47 @@
 package tukano.impl;
 
+import static java.lang.String.format;
+import static tukano.api.Result.ErrorCode.*;
+import static tukano.api.Result.error;
+import static tukano.api.Result.errorOrResult;
+import static tukano.api.Result.errorOrValue;
+import static tukano.api.Result.errorOrVoid;
+import static tukano.api.Result.ok;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import tukano.api.Blobs;
+import tukano.api.Result;
 import tukano.api.Short;
-import tukano.api.*;
+import tukano.api.Shorts;
+import tukano.api.User;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.Cache;
 import utils.DB;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
+public class JavaShortsV2 implements Shorts {
 
-import static java.lang.String.format;
-import static tukano.api.Result.ErrorCode.*;
-import static tukano.api.Result.*;
-
-public class JavaShorts implements Shorts {
-
-	private static final Logger Log = Logger.getLogger(JavaShorts.class.getName());
+	private static Logger Log = Logger.getLogger(JavaShortsV2.class.getName());
 	private static final String SHORT_FMT = "short:%s";
 	private static final String USER_SHORTS_FMT = "user:%s:shorts";
+	private static final String LIKE_FMT = "short:%s:likes";
+	private static final String FOLLOWERS_FMT = "user:%s:followers";
 	private static final String FEED_FMT = "user:%s:feed";
-
+	
 	private static Shorts instance;
-
+	
 	synchronized public static Shorts getInstance() {
 		if( instance == null )
-			instance = new JavaShorts();
+			instance = new JavaShortsV2();
 		return instance;
 	}
-
-	private JavaShorts() {}
+	
+	private JavaShortsV2() {}
 
 	@Override
 	public Result<Short> createShort(String userId, String password) {
@@ -46,8 +53,14 @@ public class JavaShorts implements Shorts {
 			var shrt = new Short(shortId, userId, blobUrl);
 
 			return errorOrValue(DB.insertOne(shrt), s -> {
-				if(!insertShortToCache(s, password).isOK())
-					Log.info("Error inserting short into cache");
+				Cache.insertIntoCache(String.format(SHORT_FMT, s.getShortId()), s);
+				Cache.appendList(String.format(USER_SHORTS_FMT, userId), s);
+				List<String> followers = followers(user.getUserId(), user.getPwd()).value();
+				followers.add(userId);
+				for (String followerId : followers) {
+					String feedKey = String.format(FEED_FMT, followerId);
+					Cache.appendList(feedKey, shrt);
+				}
 				return s.copyWithLikes_And_Token(0);
 			});
 		});
@@ -79,21 +92,35 @@ public class JavaShorts implements Shorts {
 		Result<Short> s = Cache.getFromCache(String.format(SHORT_FMT, shortId), Short.class);
 		if(!s.isOK()) s = DB.getOne(shortId, Short.class);
 
-		return errorOrResult(s, shrt -> errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
-            if(!removeCachedShort(shrt, password).isOK())
-                return Result.error(BAD_REQUEST);
+		return errorOrResult(s, shrt -> {
 
-            var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
-            var likesToDelete = DB.sql(query, Likes.class);
+			return errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
+				if(!Cache.removeFromCache(String.format(SHORT_FMT, shortId)).isOK() ||
+					!Cache.removeFromList(String.format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt).isOK() ||
+						!Cache.removeFromList(String.format(FEED_FMT, shrt.getOwnerId()), shrt).isOK())
+					Log.info("Error deleting short from cache");
 
-            likesToDelete.forEach(DB::deleteOne);
+				if(!Cache.removeFromCache(String.format(LIKE_FMT, shortId)).isOK())
+					Log.info("Error deleting short likes from cache");
 
-            // var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            // if(!blobsDeleted.isOK()) return blobsDeleted;
+				List<String> followers = followers(user.getUserId(), user.getPwd()).value();
+				for (String followerId : followers) {
+					String feedKey = String.format(FEED_FMT, followerId);
+					Cache.removeFromList(feedKey, shrt);
+				}
 
-            DB.deleteOne(shrt);
-            return Result.ok();
-        }));
+				var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
+				var likesToDelete = DB.sql(query, Likes.class);
+
+				likesToDelete.forEach(DB::deleteOne);
+
+				// var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+				// if(!blobsDeleted.isOK()) return blobsDeleted;
+
+				DB.deleteOne(shrt);
+				return Result.ok();
+			});
+		});
 	}
 
 	@Override
@@ -121,13 +148,17 @@ public class JavaShorts implements Shorts {
 			var res = errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
 			if(!res.isOK()) return res;
 
-            List<Short> followeeShorts = Cache.getList(String.format(USER_SHORTS_FMT, userId2), Short.class).value();
-            if( isFollowing ) {
-                followeeShorts.forEach(s -> Cache.appendList(String.format(FEED_FMT, userId1), s));
+			if( isFollowing ) {
+				Cache.appendList(String.format(FOLLOWERS_FMT, userId2), f.getFollower());
+				Cache.appendList("following:" + userId1, f.getFollowee());
+				List<Short> followeeShorts = Cache.getList(String.format(USER_SHORTS_FMT, userId2), Short.class).value();
+				followeeShorts.forEach(s -> Cache.appendList(String.format(FEED_FMT, userId1), s));
 			} else {
-                followeeShorts.forEach(s -> Cache.removeFromList(String.format(FEED_FMT, userId1), s));
+				Cache.removeFromList(String.format(FOLLOWERS_FMT, userId2), f.getFollower());
+				Cache.removeFromList("following:" + userId1, f.getFollowee());
+				List<Short> followeeShorts = Cache.getList(String.format(USER_SHORTS_FMT, userId2), Short.class).value();
+				followeeShorts.forEach(s -> Cache.removeFromList(String.format(FEED_FMT, userId1), s));
 			}
-
 			return res;
 		});
 	}
@@ -136,9 +167,15 @@ public class JavaShorts implements Shorts {
 	public Result<List<String>> followers(String userId, String password) {
 		Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
 
-		var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
-		return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
-				.stream().map(Following::getFollower).collect(Collectors.toList()));
+		String cacheKey = String.format(FOLLOWERS_FMT, userId);
+		List<String> followers = Cache.getList(cacheKey, String.class).value();
+		if(!Cache.isListCached(cacheKey)) {
+			var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
+			followers = DB.sql(query, Following.class)
+					.stream().map(Following::getFollower).collect(Collectors.toList());
+			Cache.replaceList(cacheKey, followers);
+		}
+		return errorOrValue(okUser(userId, password), followers);
 	}
 
 	@Override
@@ -147,9 +184,16 @@ public class JavaShorts implements Shorts {
 				password));
 
 		return errorOrResult(getShort(shortId), shrt -> {
+			String cacheKey = String.format(LIKE_FMT, shortId);
 			var l = new Likes(userId, shortId, shrt.getOwnerId());
+			var res = errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
+			if(!res.isOK()) return res;
+			res = isLiked ? Cache.appendList(cacheKey, l.getUserId()) :
+					Cache.removeFromList(cacheKey, l.getUserId());
+			if(!res.isOK())
+				Log.info("Error like from cache");
 
-			return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
+			return res;
 		});
 	}
 
@@ -158,10 +202,16 @@ public class JavaShorts implements Shorts {
 		Log.info(() -> format("likes : shortId = %s, pwd = %s\n", shortId, password));
 
 		return errorOrResult(getShort(shortId), shrt -> {
-			var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
+			String cacheKey = String.format(LIKE_FMT, shortId);
+			List<String> users = Cache.getList(cacheKey, String.class).value();
+			if(!Cache.isListCached(cacheKey)) {
+				var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
+				users = DB.sql(query, Likes.class)
+						.stream().map(Likes::getUserId).collect(Collectors.toList());
+				Cache.replaceList(cacheKey, users);
+			}
 
-			return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
-					.stream().map(Likes::getUserId).collect(Collectors.toList()));
+			return errorOrValue(okUser(shrt.getOwnerId(), password), users);
 		});
 	}
 
@@ -172,9 +222,7 @@ public class JavaShorts implements Shorts {
 		String cacheKey = String.format(FEED_FMT, userId);
  		List<Short> cachedFeed = Cache.getList(String.format(FEED_FMT, userId), Short.class).value();
 		if(Cache.isListCached(cacheKey)) {
-			List<Short> sortedFeed = new ArrayList<>(cachedFeed);
-			sortedFeed.sort(Comparator.comparing(Short::getTimestamp).reversed());
-			return errorOrValue(okUser(userId, password), sortedFeed
+			return errorOrValue(okUser(userId, password), cachedFeed
 					.stream().map(s -> s.getShortId() + ", " + s.getTimestamp()).collect(Collectors.toList()));
 		}
 
@@ -235,56 +283,25 @@ public class JavaShorts implements Shorts {
 			var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
 			shortsToDelete = DB.sql(query1, Short.class);
 		}
-		shortsToDelete.forEach(s -> {
-			removeCachedShort(s, password);
-			DB.deleteOne(s);
-		});
+		shortsToDelete.forEach(s -> deleteShort(s.getShortId(), password));
 
 		// delete follows
 		var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
 		var followsToDelete = DB.sql(query2, Following.class);
 		followsToDelete.forEach(DB::deleteOne);
+		Cache.removeFromCache(String.format(FOLLOWERS_FMT, userId));
+		List<String> following = Cache.getList(String.format("following:%s", userId), String.class).value();
+		following.forEach(u -> Cache.removeFromList(String.format(FOLLOWERS_FMT, u), userId));
 
 		// delete likes
 		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
 		var likesToDelete = DB.sql(query3, Likes.class);
-		likesToDelete.forEach(DB::deleteOne);
+		likesToDelete.forEach(l -> {
+			DB.deleteOne(l);
+			Cache.removeFromList(String.format(LIKE_FMT, l.getShortId()), userId);
+		});
 
 		return Result.ok();
 	}
 
-	private Result<Void> insertShortToCache(Short shrt, String password) {
-		try {
-			Cache.insertIntoCache(String.format(SHORT_FMT, shrt.getShortId()), shrt);
-			Cache.appendList(String.format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt);
-			List<String> followers = followers(shrt.getOwnerId(), password).value();
-			followers.add(shrt.getOwnerId());
-			for (String followerId : followers) {
-				String feedKey = String.format(FEED_FMT, followerId);
-				Cache.appendList(feedKey, shrt);
-			}
-		} catch (Exception e) {
-			return Result.error(BAD_REQUEST);
-		}
-		return ok();
-	}
-
-	private Result<Void> removeCachedShort(Short shrt, String password) {
-		try {
-			if(!Cache.removeFromCache(String.format(SHORT_FMT, shrt.getShortId())).isOK() ||
-					!Cache.removeFromList(String.format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt).isOK() ||
-					!Cache.removeFromList(String.format(FEED_FMT, shrt.getOwnerId()), shrt).isOK())
-				Log.info("Error deleting short from cache");
-
-			var query2 = format("SELECT * FROM Following f WHERE f.followee = '%s'", shrt.getOwnerId());
-			var followsToDelete = DB.sql(query2, Following.class);
-			for (Following follower : followsToDelete) {
-				String feedKey = String.format(FEED_FMT, follower.getFollower());
-				Cache.removeFromList(feedKey, shrt);
-			}
-		} catch (Exception e) {
-			return Result.error(BAD_REQUEST);
-		}
-		return ok();
-	}
 }

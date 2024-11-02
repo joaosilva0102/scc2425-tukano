@@ -9,6 +9,13 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<authors>62612-70373</authors>
+		<java.version>23</java.version>
+		<azure.functions.maven.plugin.version>1.19.0</azure.functions.maven.plugin.version>
+		<azure.functions.java.library.version>3.1.0</azure.functions.java.library.version>
+		<functionAppName>fun70373northeurope</functionAppName>
+		<functionRegion>northeurope</functionRegion>
+		<functionStorageAccountName>sto70373northeurope</functionStorageAccountName>
+		<functionResourceGroup>rg70373-northeurope</functionResourceGroup>
 	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
@@ -70,6 +77,37 @@
 		</plugins>
 	</build>
 	<dependencies>
+		<dependency>
+			<groupId>com.microsoft.azure.functions</groupId>
+			<artifactId>azure-functions-java-library</artifactId>
+			<version>${azure.functions.java.library.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.11.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure.resourcemanager</groupId>
+			<artifactId>azure-resourcemanager</artifactId>
+			<version>2.43.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure.resourcemanager</groupId>
+			<artifactId>azure-resourcemanager-resources</artifactId>
+			<version>2.43.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure.resourcemanager</groupId>
+			<artifactId>azure-resourcemanager-storage</artifactId>
+			<version>2.43.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
+			<version>1.14.0</version>
+			<scope>compile</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>

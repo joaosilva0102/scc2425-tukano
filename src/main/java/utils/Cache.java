@@ -52,7 +52,6 @@ public class Cache {
 
     public static <T> Result<Void> appendList(String key, T obj) {
         try (var jedis = RedisCache.getCachePool().getResource()) {
-            System.out.println(JSON.encode(obj));
             long n = jedis.rpush(key, JSON.encode(obj));
             Log.info(n + "elements appended to list: " + key);
             return ok();
@@ -70,8 +69,7 @@ public class Cache {
 
     public static <T> Result<Void> updateList(String key, T prevObj, T newObj) {
         try (var jedis = RedisCache.getCachePool().getResource()) {
-            long pos = jedis.lpos(key, JSON.encode(prevObj));
-            jedis.lset(key, pos, JSON.encode(newObj));
+            jedis.lset(key, jedis.lpos(key, JSON.encode(prevObj)), JSON.encode(newObj));
             Log.info("Element updated in cache list: " + key);
             return ok();
         }
@@ -93,9 +91,8 @@ public class Cache {
         }
     }
 
-    public static boolean isCached(String keyType, String keyValue) {
+    public static boolean isCached(String key) {
         try (var jedis = RedisCache.getCachePool().getResource()) {
-            var key = String.format("%s:%s",keyType, keyValue);
             Log.info("Checking if key is in cache: " + key);
             return jedis.exists(key);
         }

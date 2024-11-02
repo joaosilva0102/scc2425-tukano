@@ -117,7 +117,7 @@ public interface Shorts {
 	 * @param userId user of the requested feed
 	 * @param password the password of the user
 	 * @return (OK,List<PostId>|empty list)
-	 * 	NOT_FOUND if the user does not exists
+	 * 	NOT_FOUND if the user does not exist
 	 *  FORBIDDEN if the password is incorrect
 	 */
 	Result<List<String>> getFeed(String userId, String password);
