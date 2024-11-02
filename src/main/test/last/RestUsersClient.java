@@ -1,6 +1,4 @@
-package main.test.tukano.clients.rest;
-
-import java.util.List;
+package main.test.last;
 
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.GenericType;
@@ -9,6 +7,8 @@ import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
 import tukano.api.rest.RestUsers;
+
+import java.util.List;
 
 
 public class RestUsersClient extends RestClient implements Users {

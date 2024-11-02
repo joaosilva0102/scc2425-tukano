@@ -53,12 +53,10 @@ public class JavaShorts implements Shorts {
 		});
 	}
 
-	@Override
-	public Result<Short> getShort(String shortId) {
-		Log.info(() -> format("getShort : shortId = %s\n", shortId));
 
-		if( shortId == null )
-			return error(BAD_REQUEST);
+    @Override
+    public Result<Short> createShort(String userId, String password) {
+        Log.info(() -> format("createShort : userId = %s, pwd = %s\n", userId, password));
 
 		Result<Short> shrtRes = Cache.getFromCache(String.format(SHORT_FMT, shortId), Short.class);
 		if(!shrtRes.isOK()) {
@@ -72,9 +70,7 @@ public class JavaShorts implements Shorts {
 		return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(likes));
 	}
 
-	@Override
-	public Result<Void> deleteShort(String shortId, String password) {
-		Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
+            Cache.insertIntoCache("short", shortId, shrt);
 
 		Result<Short> s = Cache.getFromCache(String.format(SHORT_FMT, shortId), Short.class);
 		if(!s.isOK()) s = DB.getOne(shortId, Short.class);
@@ -96,9 +92,11 @@ public class JavaShorts implements Shorts {
         }));
 	}
 
-	@Override
-	public Result<List<String>> getShorts(String userId) {
-		Log.info(() -> format("getShorts : userId = %s\n", userId));
+        }
+//            Log.log(Level.WARNING, "AQUII: " + cacheRes);
+//            return errorOrValue(cacheRes.isOK() ? cacheRes : nosql ? DB.getOne(shortId, Short.class) : CosmosPostgresDB.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token(likes));
+        return result;
+    }
 
 		String cacheKey = String.format(USER_SHORTS_FMT, userId);
 		List<Short> shorts = Cache.getList(cacheKey, Short.class).value();
@@ -111,10 +109,7 @@ public class JavaShorts implements Shorts {
 		return errorOrValue(okUser(userId), shorts.stream().map(Short::getShortId).toList());
 	}
 
-	@Override
-	public Result<Void> follow(String userId1, String userId2, boolean isFollowing, String password) {
-		Log.info(() -> format("follow : userId1 = %s, userId2 = %s, isFollowing = %s, pwd = %s\n", userId1, userId2,
-				isFollowing, password));
+        return errorOrResult(getShort(shortId), shrt -> {
 
 		return errorOrResult(okUser(userId1, password), user -> {
 			var f = new Following(userId1, userId2);
@@ -132,19 +127,35 @@ public class JavaShorts implements Shorts {
 		});
 	}
 
-	@Override
-	public Result<List<String>> followers(String userId, String password) {
-		Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
+                if (nosql) {
+                    DB.deleteOne(shrt);
+                } else {
+                    PostgreDB.deleteOne(shrt);
+                }
+                Cache.removeFromCache("short", shortId);
+                Log.info(() -> format("Deleted short %s\n", shortId));
+                var query = format("SELECT l FROM Likes l WHERE l.shortId = '%s'", shortId);
+                String query2 = "SELECT * FROM Likes WHERE shortId = '%s'";
+                List<Likes> itemsToDelete;
 
-		var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
-		return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
-				.stream().map(Following::getFollower).collect(Collectors.toList()));
-	}
+                if (nosql) {
+                    itemsToDelete = DB.sql(query, Likes.class);
+                } else {
+                    try {
+                        //itemsToDelete = PostgreDB.sql(Likes.class, query2);
+                        itemsToDelete = PostgreDB.sql(Likes.class, query2, shortId);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
-	@Override
-	public Result<Void> like(String shortId, String userId, boolean isLiked, String password) {
-		Log.info(() -> format("like : shortId = %s, userId = %s, isLiked = %s, pwd = %s\n", shortId, userId, isLiked,
-				password));
+                for (Likes like : itemsToDelete) {
+                    if (nosql) {
+                        DB.deleteOne(like);
+                    } else {
+                        PostgreDB.deleteOne(like);
+                    }
+                }
 
 		return errorOrResult(getShort(shortId), shrt -> {
 			var l = new Likes(userId, shortId, shrt.getOwnerId());
@@ -153,21 +164,28 @@ public class JavaShorts implements Shorts {
 		});
 	}
 
-	@Override
-	public Result<List<String>> likes(String shortId, String password) {
-		Log.info(() -> format("likes : shortId = %s, pwd = %s\n", shortId, password));
+                return Result.ok();
+            });
+        });
+    }
 
 		return errorOrResult(getShort(shortId), shrt -> {
 			var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
 
-			return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
-					.stream().map(Likes::getUserId).collect(Collectors.toList()));
-		});
-	}
+    @Override
+    public Result<Void> follow(String userId1, String userId2, boolean isFollowing, String password) {
+        Log.info(() -> format("follow : userId1 = %s, userId2 = %s, isFollowing = %s, pwd = %s\n", userId1, userId2,
+                isFollowing, password));
 
-	@Override
-	public Result<List<String>> getFeed(String userId, String password) {
-		Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
+        return errorOrResult(okUser(userId1, password), user -> {
+            var f = new Following(userId1, userId2);
+            if (nosql)
+                return errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
+            else {
+                return errorOrVoid(okUser(userId2), isFollowing ? PostgreDB.insertOne(f) : PostgreDB.deleteOne(f));
+            }
+        });
+    }
 
 		String cacheKey = String.format(FEED_FMT, userId);
  		List<Short> cachedFeed = Cache.getList(String.format(FEED_FMT, userId), Short.class).value();
@@ -183,24 +201,44 @@ public class JavaShorts implements Shorts {
 					WHERE f.follower = '%s'
 				""";
 
-		var result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
-				.stream().map(Following::getFollowee).collect(Collectors.toList()));
+        var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);
+        var query2 = "SELECT * FROM Following WHERE followee = '%s'";
+        if (nosql)
+            return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
+                    .stream().map(Following::getFollower).collect(Collectors.toList()));
+        else {
+            try {
+                return errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, query2, userId)
+                        .stream().map(Following::getFollower).collect(Collectors.toList()));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-		if(!result.isOK()) return result;
+    @Override
+    public Result<Void> like(String shortId, String userId, boolean isLiked, String password) {
+        Log.info(() -> format("like : shortId = %s, userId = %s, isLiked = %s, pwd = %s\n", shortId, userId, isLiked,
+                password));
 
-		var usersList = result.value();
+        if (nosql) {
+            return errorOrResult(getShort(shortId), shrt -> {
+                var l = new Likes(userId, shortId, shrt.getOwnerId());
+                return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
+            });
+        } else {
+            return errorOrResult(getShort(shortId), shrt -> {
+                var l = new Likes(userId, shortId, shrt.getOwnerId());
+                return errorOrVoid(okUser(userId, password), isLiked ? PostgreDB.insertOne(l) : PostgreDB.deleteOne(l));
+            });
 
-		usersList.add(userId);
+        }
 
-		String usersFormated = usersList.stream()
-				.map(id -> "'" + id + "'")
-				.collect(Collectors.joining(", "));
+    }
 
-		final var QUERY_2_FMT = """
-					SELECT * FROM Short s
-					WHERE s.ownerId IN (%s)
-					ORDER BY s.timestamp DESC
-				""";
+    @Override
+    public Result<List<String>> likes(String shortId, String password) {
+        Log.info(() -> format("likes : shortId = %s, pwd = %s\n", shortId, password));
 
 		List<String> feed = DB.sql(format(QUERY_2_FMT, usersFormated), Short.class)
 				.stream().map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList());
@@ -210,24 +248,43 @@ public class JavaShorts implements Shorts {
 		return errorOrValue(okUser(userId, password), feed);
 	}
 
-	protected Result<User> okUser(String userId, String pwd) {
-		return JavaUsers.getInstance().getUser(userId, pwd);
-	}
+            var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);
+            var query2 = "SELECT * FROM Likes WHERE shortId = '%s'";
 
-	private Result<Void> okUser(String userId) {
-		var res = okUser(userId, "");
-		if (res.error() == FORBIDDEN)
-			return ok();
-		else
-			return error(res.error());
-	}
+            if (nosql)
+                return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
+                        .stream().map(Likes::getUserId).collect(Collectors.toList()));
+            else {
+                try {
+                    Log.info("USER:   " + okUser(shrt.getOwnerId(), password).toString());
+                    return errorOrValue(okUser(shrt.getOwnerId(), password), PostgreDB.sql(Likes.class, query2, shortId)
+                            .stream().map(Likes::getUserId).collect(Collectors.toList()));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
 
-	@Override
-	public Result<Void> deleteAllShorts(String userId, String password, String token) {
-		Log.info(() -> format("deleteAllShorts : userId = %s, password = %s, token = %s\n", userId, password, token));
+    @Override
+    public Result<List<String>> getFeed(String userId, String password) {
+        Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-		if (!Token.isValid(token, userId))
-			return error(FORBIDDEN);
+        final var QUERY_1_FMT = """
+                	SELECT * FROM Following f
+                	WHERE f.follower = '%s'
+                """;
+        Result<List<String>> result;
+        if (nosql)
+            result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
+                    .stream().map(Following::getFollowee).collect(Collectors.toList()));
+        else {
+            try {
+                result = errorOrValue(okUser(userId, password), PostgreDB.sql(Following.class, format(QUERY_1_FMT, userId))
+                        .stream().map(Following::getFollowee).collect(Collectors.toList()));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
 		// delete shorts
 		List<Short> shortsToDelete = Cache.getList(String.format(USER_SHORTS_FMT, userId), Short.class).value();
@@ -250,8 +307,7 @@ public class JavaShorts implements Shorts {
 		var likesToDelete = DB.sql(query3, Likes.class);
 		likesToDelete.forEach(DB::deleteOne);
 
-		return Result.ok();
-	}
+        usersList.add(userId);
 
 	private Result<Void> insertShortToCache(Short shrt, String password) {
 		try {

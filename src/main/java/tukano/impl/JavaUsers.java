@@ -7,6 +7,7 @@ import static tukano.api.Result.errorOrResult;
 import static tukano.api.Result.errorOrValue;
 import static tukano.api.Result.ok;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -16,6 +17,8 @@ import tukano.api.User;
 import tukano.api.Users;
 import utils.Cache;
 import utils.DB;
+import utils.PostgreSQL.CosmosPostgresDB;
+import utils.PostgreSQL.PostgreDB;
 
 public class JavaUsers implements Users {
 
@@ -65,7 +68,6 @@ public class JavaUsers implements Users {
 			user = DB.getOne(userId, User.class);
 			if(user.isOK()) Cache.insertIntoCache(String.format(USER_FMT, userId), user.value());
 		}
-
 		return validatedUserOrError(user, pwd);
 	}
 
@@ -90,7 +92,7 @@ public class JavaUsers implements Users {
 				});
 	}
 
-	@SuppressWarnings("unchecked")
+
 	@Override
 	public Result<User> deleteUser(String userId, String pwd) {
 		Log.info(() -> format("deleteUser : userId = %s, pwd = %s\n", userId, pwd));

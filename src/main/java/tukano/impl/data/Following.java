@@ -1,15 +1,21 @@
 package tukano.impl.data;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.util.Objects;
 
+@Entity
 public class Following {
 
 	String id;
+	@Id
 	String follower;
-
+	@Id
 	String followee;
 
-    public Following() {}
+	public Following() {}
 
 	public Following(String follower, String followee) {
 		super();
@@ -59,6 +65,6 @@ public class Following {
 	public String toString() {
 		return "Following [follower=" + follower + ", followee=" + followee + "]";
 	}
-	
-	
+
+
 }

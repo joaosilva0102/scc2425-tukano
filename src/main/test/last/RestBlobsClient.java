@@ -1,7 +1,6 @@
-package main.test.tukano.clients.rest;
+package main.test.last;
 
 import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import tukano.api.Blobs;
 import tukano.api.Result;
