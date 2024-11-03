@@ -2,68 +2,78 @@ package serverless;
 
 import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
-import utils.cache.RedisCache;
+import redis.clients.jedis.Jedis;
 import tukano.api.Short;
+import tukano.api.User;
+import utils.Props;
+import utils.cache.RedisCache;
+import com.google.gson.Gson;
+import tukano.impl.JavaShorts;
+import tukano.impl.JavaUsers;
+import utils.database.DB;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class TukanoRecommends {
-    private static final String TEXT = "text";
-    private static final String HTTP_TRIGGER_NAME="reqShort";
-    private static final String HTTP_FUNCTION_NAME="tukanoRecommends";
-    private static final String HTTP_TRIGGER_ROUTE="serverless/echo/";
-    @FunctionName(HTTP_FUNCTION_NAME)
+
+    private static final Gson gson = new Gson();
+
+    @FunctionName("tukanoRecommends")
     public HttpResponseMessage run(
             @HttpTrigger(
-                    name = HTTP_TRIGGER_NAME,
+                    name = "reqShort",
                     methods = {HttpMethod.GET, HttpMethod.POST},
                     authLevel = AuthorizationLevel.ANONYMOUS,
-                    route = HTTP_TRIGGER_ROUTE)
+                    route = "serverless/")
             HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
 
         context.getLogger().info("HTTP trigger to fetch top 5 shorts from Redis Cache");
 
-        List<Map<String, String>> recShorts = new ArrayList<>();
-
-        try (var jedis = RedisCache.getCachePool().getResource()) {
-
+        //try (var jedis = RedisCache.getCachePool().getResource()) {
+        try{
+            Props.load("azurekeys-northeurope.props");
+            String redisHost =  System.getProperty("REDIS_HOSTNAME");
+            String redisKey = System.getProperty("REDIS_KEY");
+            Jedis jedis = new Jedis(redisHost,6380, true);
+            jedis.auth(redisKey);
             Set<String> shortKeys = jedis.keys("short:*");
-
             List<Short> shorts = new ArrayList<>();
-
-            for (String key : shortKeys) {
-                Map<String, String> data = jedis.hgetAll(key);
-
-                int totalviews = Integer.parseInt(data.getOrDefault("totalViews", "0"));
-                int likes = Integer.parseInt(data.getOrDefault("totalLikes", "0"));
-                long timestamp = Long.parseLong(data.getOrDefault("timestamp", "0"));
-                String blobUrl = data.getOrDefault("blobUrl", "");
-                String ownerId = data.getOrDefault("ownerId", "");
-                Short s = new Short(key, ownerId, blobUrl, timestamp, likes, totalviews);
-                shorts.add(s);
+            User user = new User("TukanoRecomends", "12345", "tukano@tukano.com", " Tukano Recomends");
+            List<Short> delete = (List<Short>) JavaShorts.getInstance().getShorts(user.getUserId());
+            for (Short s : delete){
+                DB.deleteOne(s);
             }
 
-            //gets top 5 shorts based on total views, likes and timestamp
-            recShorts = shorts.stream()
+            for (String key : shortKeys) {
+                String value = jedis.get(key);
+                try {
+                    Short s = gson.fromJson(value, Short.class);
+                    shorts.add(new Short(s.getShortId(), user.getUserId(), s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
+                } catch (Exception e) {
+                    context.getLogger().severe("Error parsing data for key: " + key);
+                }
+            }
+
+            List<Short> recShorts = shorts.stream()
                     .sorted(Comparator.comparingInt(Short::getTotalViews).reversed()
                             .thenComparingInt(Short::getTotalLikes).reversed()
                             .thenComparingLong(Short::getTimestamp).reversed())
                     .limit(5)
-                    .map(Short::toMap)
-                    .collect(Collectors.toList());
+                    .toList();
+
+            for (Short s : recShorts){
+                DB.insertOne(s);
+            }
+
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .build();
 
         } catch (Exception e) {
-            context.getLogger().severe("Error accessing Redis: " + e.getMessage());
-
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error accessing Redis data")
+                    .body("Error accessing Redis data: " + e.getMessage())
                     .build();
         }
-        return request.createResponseBuilder(HttpStatus.OK)
-                .header("Content-Type", "application/json")
-                .body(recShorts)
-                .build();
     }
 }

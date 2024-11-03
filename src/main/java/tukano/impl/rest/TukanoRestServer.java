@@ -1,6 +1,10 @@
 package tukano.impl.rest;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -9,6 +13,8 @@ import jakarta.ws.rs.core.Application;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
+import tukano.api.User;
+import tukano.impl.JavaUsers;
 import tukano.impl.Token;
 import utils.Args;
 import utils.IP;
@@ -37,6 +43,8 @@ public class TukanoRestServer extends Application {
 		resources.add(RestShortsResource.class);
 		serverURI = String.format(SERVER_BASE_URI, IP.hostAddress(), PORT);
 		Props.load("azurekeys-region.props");
+		User user = new User("TukanoRecomends", "12345", "tukano@tukano.com", " Tukano Recomends");
+		JavaUsers.getInstance().createUser(user);
 		//Props.load("azurekeys-northeurope.props");
 	}
 
@@ -49,6 +57,8 @@ public class TukanoRestServer extends Application {
 	public Set<Object> getSingletons() {
 		return singletons;
 	}
+
+
 
 	public static void main(String[] args) throws Exception {
 		return;

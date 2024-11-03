@@ -39,6 +39,7 @@ public class Test_JB {
 
 		System.out.println("***************TEST USERS************************");
 
+			show(users.getUser("TukanoRecomends", "12345"));
 		 show(users.createUser( new User("wales", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 		 
 		 show(users.createUser( new User("liskov", "54321", "liskov@mit.edu", "Barbara Liskov") ));
@@ -60,7 +61,6 @@ public class Test_JB {
 
 		show(users.createUser( new User("liskov1", "54321", "liskasfov@mit.edu", "Barbaraas Liskov") ));
 		show(users.createUser( new User("jb", "54321", "jbasf@mit.edu", "J Bas") ));
-
 
 		show(s1 = shorts.createShort("liskov1", "54321"));
 		show(shorts.createShort("liskov1", "54321"));

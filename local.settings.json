@@ -2,11 +2,13 @@
   "IsEncrypted": false,
   "Values": {
     "AzureWebJobsStorage": "",
-    "FUNCTIONS_WORKER_RUNTIME": "java"
+    "FUNCTIONS_WORKER_RUNTIME": "java",
+    "REDIS_KEY": "1oHDGY9pPpKCTBsQ7WMsMtYL5E6YOeMfqAzCaOJGTZo=",
+    "REDIS_HOSTNAME": "redis6261270373northeurope.redis.cache.windows.net"
   },
   "extensions": {
-          "http": {
-              "routePrefix": "tukano"
-          }
-      }
+    "http": {
+      "routePrefix": "tukano"
+    }
+  }
 }

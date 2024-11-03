@@ -7,3 +7,4 @@ src/main/resources/azurekeys-northeurope.props
 src/main/resources/application.properties
 .png
 .jpg
+pom.xml

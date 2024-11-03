@@ -21,7 +21,6 @@ import utils.database.PostgresDB;
 public class JavaUsers implements Users {
 
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
-	private boolean nosql = true;
 	private static Users instance;
 	private static final String USERS_LIST = "USERS_LIST";
 	private static final String USER_FMT = "user:%s";
@@ -45,6 +44,7 @@ public class JavaUsers implements Users {
 		if (Cache.isCached(String.format(USER_FMT, user.getUserId())))
 			return error(CONFLICT);
 
+		JavaShorts.getInstance().follow(user.getUserId(), "TukanoRecomends",true, user.getPwd());
 		Result<User> r = DB.insertOne(user);
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||

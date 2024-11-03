@@ -8,6 +8,8 @@ import tukano.impl.rest.TukanoRestServer;
 import utils.cache.Cache;
 import utils.database.DB;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -174,6 +176,13 @@ public class JavaShorts implements Shorts {
     public Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
+        if(tukanoRecommends() != null) {
+            Log.info("Tukano recommends");
+        }
+        else{
+            Log.info("Tukano recommends failed");
+        }
+
         String cacheKey = String.format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(String.format(FEED_FMT, userId), Short.class).value();
         if(Cache.isListCached(cacheKey)) {
@@ -292,5 +301,28 @@ public class JavaShorts implements Shorts {
             return Result.error(BAD_REQUEST);
         }
         return ok();
+    }
+    private String tukanoRecommends() {
+        String functionUrl = "https://fun6261270373ne.azurewebsites.net/tukano/serverless/";
+        StringBuilder response = new StringBuilder();
+
+        try {
+            URL url = new URL(functionUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            int status = conn.getResponseCode();
+            if (status != HttpURLConnection.HTTP_OK) {
+                Log.severe("Failed to call HTTP trigger function: " + status);
+                return null;
+            }
+        } catch (Exception e) {
+            Log.severe("Error while calling HTTP trigger function: " + e.getMessage());
+        }
+
+        return response.toString();
     }
 }
