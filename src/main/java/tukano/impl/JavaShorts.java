@@ -27,7 +27,7 @@ public class JavaShorts implements Shorts {
     private static final String USER_SHORTS_FMT = "user:%s:shorts";
     private static final String FEED_FMT = "user:%s:feed";
 
-    private boolean nosql = true;
+    private boolean nosql = false;
     private static Shorts instance;
 
     synchronized public static Shorts getInstance() {

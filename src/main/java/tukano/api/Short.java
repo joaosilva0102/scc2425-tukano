@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import tukano.impl.Token;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Represents a Short video uploaded by an user.
  *
@@ -109,5 +112,17 @@ public class Short {
 	public Short copyWithLikes_And_Token( int totLikes) {
 		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(id, timestamp));
 		return new Short( id, ownerId, urlWithToken, timestamp, totLikes);
+	}
+
+	public Map<String, String> toMap() {
+		Map<String, String> map = new HashMap<>();
+		map.put("shortId", shortId);
+		map.put("id", id);
+		map.put("ownerId", ownerId);
+		map.put("blobUrl", blobUrl);
+		map.put("timestamp", String.valueOf(timestamp));
+		map.put("totalLikes", String.valueOf(totalLikes));
+		map.put("totalViews", String.valueOf(totalviews));
+		return map;
 	}
 }

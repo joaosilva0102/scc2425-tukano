@@ -21,7 +21,7 @@ import utils.database.PostgresDB;
 public class JavaUsers implements Users {
 
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
-	private boolean nosql = true;
+	private boolean nosql = false;
 	private static Users instance;
 	private static final String USERS_LIST = "USERS_LIST";
 	private static final String USER_FMT = "user:%s";
