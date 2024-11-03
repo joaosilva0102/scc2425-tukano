@@ -2,7 +2,6 @@ package tukano.api;
 
 import jakarta.persistence.Id;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import tukano.impl.Token;
 
 import java.util.HashMap;
@@ -26,7 +25,7 @@ public class Short {
 	String blobUrl;
 	long timestamp;
 	int totalLikes;
-	int totalviews;
+	int totalViews;
 
 	public Short() {}
 
@@ -38,7 +37,7 @@ public class Short {
 		this.blobUrl = blobUrl;
 		this.timestamp = timestamp;
 		this.totalLikes = totalLikes;
-		this.totalviews = 0;
+		this.totalViews = 0;
 	}
 
 	public Short(String shortId, String ownerId, String blobUrl) {
@@ -93,20 +92,20 @@ public class Short {
 	}
 
 	public int getTotalViews() {
-		return totalviews;
+		return totalViews;
 	}
-	public void setTotalviews(int totalviews) {
-		this.totalviews = totalviews;
+	public void setTotalviews(int totalViews) {
+		this.totalViews = totalViews;
 	}
 
 	public int incrementViews() {
-		return totalviews++;
+		return totalViews++;
 	}
 
 	@Override
 	public String toString() {
 		return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
-				+ timestamp + ", totalLikes=" + totalLikes + ", totalviews=" + totalviews + "]";
+				+ timestamp + ", totalLikes=" + totalLikes + ", totalviews=" + totalViews + "]";
 	}
 
 	public Short copyWithLikes_And_Token( int totLikes) {
@@ -122,7 +121,7 @@ public class Short {
 		map.put("blobUrl", blobUrl);
 		map.put("timestamp", String.valueOf(timestamp));
 		map.put("totalLikes", String.valueOf(totalLikes));
-		map.put("totalViews", String.valueOf(totalviews));
+		map.put("totalViews", String.valueOf(totalViews));
 		return map;
 	}
 }
