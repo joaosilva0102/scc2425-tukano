@@ -21,7 +21,7 @@ public class PostgresDB {
         return Hibernate.getInstance().deleteOne(obj);
     }
 
-    public static <T> Result<T> updateOne(T obj) {
+    public static <T> Result<T> updatene(T obj) {
         return Hibernate.getInstance().updateOne(obj);
     }
 

@@ -2,9 +2,7 @@ package serverless;
 
 import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
-import redis.clients.jedis.Jedis;
-import tukano.api.Shorts;
-import utils.RedisCache;
+import utils.cache.RedisCache;
 import tukano.api.Short;
 
 import java.util.*;
@@ -43,8 +41,7 @@ public class TukanoRecommends {
                 long timestamp = Long.parseLong(data.getOrDefault("timestamp", "0"));
                 String blobUrl = data.getOrDefault("blobUrl", "");
                 String ownerId = data.getOrDefault("ownerId", "");
-                Short s = new Short(key, ownerId, blobUrl, timestamp, likes);
-                s.setTotalviews(totalViews);
+                Short s = new Short(key, ownerId, blobUrl, timestamp, likes, totalViews);
                 shorts.add(s);
             }
 

@@ -1,11 +1,8 @@
-package main.test.test;
+package main.test.clients;
 
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import main.test.clients.RestBlobsClient;
-import main.test.clients.RestShortsClient;
-import main.test.clients.RestUsersClient;
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.impl.rest.TukanoRestServer;

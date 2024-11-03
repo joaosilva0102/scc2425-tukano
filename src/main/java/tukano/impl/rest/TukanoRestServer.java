@@ -36,8 +36,8 @@ public class TukanoRestServer extends Application {
 		resources.add(RestUsersResource.class);
 		resources.add(RestShortsResource.class);
 		serverURI = String.format(SERVER_BASE_URI, IP.hostAddress(), PORT);
-		//Props.load("azurekeys-region.props");
-		Props.load("azurekeys-northeurope.props");
+		Props.load("azurekeys-region.props");
+		//Props.load("azurekeys-northeurope.props");
 	}
 
 	@Override

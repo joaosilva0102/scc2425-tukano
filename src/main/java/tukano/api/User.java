@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "\"User\"")
+@Table(name = "users")
 public class User extends tukano.api.Entity {
 
 	@Id

@@ -31,7 +31,6 @@ public class Hibernate {
 	private Hibernate() {
 		try {
 			sessionFactory = new Configuration().configure().buildSessionFactory();
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -44,6 +43,7 @@ public class Hibernate {
 	 * @return
 	 */
 	synchronized public static Hibernate getInstance() {
+		Log.info("Accessing CosmosDB PostgreSQL...");
 		if (instance == null)
 			instance = new Hibernate();
 		return instance;

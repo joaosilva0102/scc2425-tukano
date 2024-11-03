@@ -36,7 +36,7 @@ public class CosmosDB {
     private static CosmosDB instance;
 
     public static synchronized CosmosDB getInstance() {
-        Log.info("Accessing CosmosDB...");
+        Log.info("Accessing CosmosDB NO-SQL...");
         if (instance != null)
             return instance;
 

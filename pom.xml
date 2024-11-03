@@ -14,7 +14,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<authors>62612-70373</authors>
 		<java.version>23</java.version>
-		<azure.functions.maven.plugin.version>1.36.0</azure.functions.maven.plugin.version>
+		<azure.functions.maven.plugin.version>1.19.0</azure.functions.maven.plugin.version>
 		<azure.functions.java.library.version>3.1.0</azure.functions.java.library.version>
 		<functionAppName>fun70373northeurope</functionAppName>
 		<functionRegion>northeurope</functionRegion>

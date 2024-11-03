@@ -14,14 +14,14 @@ import java.util.logging.Logger;
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
-import utils.Cache;
+import utils.cache.Cache;
 import utils.database.DB;
 import utils.database.PostgresDB;
 
 public class JavaUsers implements Users {
 
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
-	private boolean nosql = false;
+	private boolean nosql = true;
 	private static Users instance;
 	private static final String USERS_LIST = "USERS_LIST";
 	private static final String USER_FMT = "user:%s";
@@ -45,11 +45,7 @@ public class JavaUsers implements Users {
 		if (Cache.isCached(String.format(USER_FMT, user.getUserId())))
 			return error(CONFLICT);
 
-		Result<User> r;
-		if(nosql)
-			r = DB.insertOne(user);
-		else
-			r = PostgresDB.insertOne(user);
+		Result<User> r = DB.insertOne(user);
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
@@ -67,10 +63,7 @@ public class JavaUsers implements Users {
 
 		Result<User> user = Cache.getFromCache(String.format(USER_FMT, userId), User.class);
 		if (!user.isOK()) {
-			if(nosql)
-				user = DB.getOne(userId, User.class);
-			else
-				user = PostgresDB.getOne(userId, User.class);
+			user = DB.getOne(userId, User.class);
 			if(user.isOK()) Cache.insertIntoCache(String.format(USER_FMT, userId), user.value());
 		}
 		return validatedUserOrError(user, pwd);
@@ -84,25 +77,14 @@ public class JavaUsers implements Users {
 			return error(BAD_REQUEST);
 
 		Result<User> user = Cache.getFromCache(String.format(USER_FMT, userId), User.class);
-		if(!user.isOK()) {
-			if(nosql)
-				user = DB.getOne(userId, User.class);
-			else
-				user = PostgresDB.getOne(userId, User.class);
-		}
+		if(!user.isOK())
+			user = DB.getOne(userId, User.class);
 
 		return errorOrResult(validatedUserOrError(user, pwd),
 				usr -> {
 					User updatedUser = usr.updateFrom(other);
-					if(nosql) {
-						if(!DB.updateOne(updatedUser).isOK())
-							return error(BAD_REQUEST);
-					} else {
-						if(!PostgresDB.updateOne(updatedUser).isOK())
-							return error(BAD_REQUEST);
-					}
-					/*if(!DB.updateOne(updatedUser).isOK())
-						return error(BAD_REQUEST);*/
+					if(!DB.updateOne(updatedUser).isOK())
+						return error(BAD_REQUEST);
 
 					Cache.updateList(USERS_LIST, usr, updatedUser);
 					return Cache.insertIntoCache(String.format(USER_FMT, userId), updatedUser);
@@ -118,12 +100,8 @@ public class JavaUsers implements Users {
 			return error(BAD_REQUEST);
 
 		Result<User> user = Cache.getFromCache(String.format(USER_FMT, userId), User.class);
-		if (!user.isOK()) {
-			if (nosql)
+		if (!user.isOK())
 				user = DB.getOne(userId, User.class);
-			else
-				user = PostgresDB.getOne(userId, User.class);
-		}
 
 		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
 			Cache.removeFromCache(String.format(USER_FMT, userId));
@@ -134,10 +112,8 @@ public class JavaUsers implements Users {
 				JavaShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
 				JavaBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
 			}).start();
-			if(nosql)
-            	return (Result<User>) DB.deleteOne(usr) ;
-			else
-				return PostgresDB.deleteOne(usr);
+
+			return DB.deleteOne(usr);
 		});
 	}
 
@@ -156,19 +132,12 @@ public class JavaUsers implements Users {
 
 		Log.info("List not in cache");
 		// If not in cache, access DB
-		var query2 =  "SELECT * FROM \"User\" u WHERE UPPER(u.userId) LIKE '%" + pattern.toUpperCase() + "%'";
-		var query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
+		var query = format("SELECT * FROM users WHERE UPPER(userid) LIKE '%%%s%%'", pattern.toUpperCase());
 		List<User> dbHits;
-		if (nosql)
-			dbHits = DB.sql(query, User.class)
-					.stream()
-					.map(User::copyWithoutPassword)
-					.toList();
-		else
-			dbHits = PostgresDB.sql(query2, User.class)
-					.stream()
-					.map(User::copyWithoutPassword)
-					.toList();
+		dbHits = DB.sql(query, User.class)
+				.stream()
+				.map(User::copyWithoutPassword)
+				.toList();
 
 		return ok(dbHits);
 	}
