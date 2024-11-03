@@ -136,10 +136,8 @@ public class JavaShorts implements Shorts {
         if(!Cache.isListCached(cacheKey)) {
             var query = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
             var query2 = "SELECT * FROM Short WHERE ownerId = '%s'";
-            if(nosql)
-                shorts = DB.sql(query, Short.class);
-            else
-                shorts = PostgresDB.sql(Short.class, query2, userId);
+            shorts = nosql ? DB.sql(query, Short.class) : PostgresDB.sql(Short.class, query2, userId);;
+
             Cache.replaceList(cacheKey, shorts);
         }
 
@@ -153,11 +151,9 @@ public class JavaShorts implements Shorts {
 
         return errorOrResult(okUser(userId1, password), user -> {
             var f = new Following(userId1, userId2);
-            Result<Void> res;
-            if(nosql)
-                res = errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f));
-            else
-                res = errorOrVoid(okUser(userId2), isFollowing ? PostgresDB.insertOne(f) : PostgresDB.deleteOne(f));
+            Result<Void> res = nosql? errorOrVoid(okUser(userId2), isFollowing ? DB.insertOne(f) : DB.deleteOne(f)) :
+                    errorOrVoid(okUser(userId2), isFollowing ? PostgresDB.insertOne(f) : PostgresDB.deleteOne(f));
+
             if(!res.isOK()) return res;
 
             List<Short> followeeShorts = Cache.getList(String.format(USER_SHORTS_FMT, userId2), Short.class).value();
@@ -193,10 +189,8 @@ public class JavaShorts implements Shorts {
         return errorOrResult(getShort(shortId), shrt -> {
             var l = new Likes(userId, shortId, shrt.getOwnerId());
 
-            if(nosql)
-                return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
-            else
-                return errorOrVoid(okUser(userId, password), isLiked ? PostgresDB.insertOne(l) : PostgresDB.deleteOne(l));
+            return nosql? errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l)) :
+                    errorOrVoid(okUser(userId, password), isLiked ? PostgresDB.insertOne(l) : PostgresDB.deleteOne(l));
         });
     }
 
@@ -300,10 +294,8 @@ public class JavaShorts implements Shorts {
         }
         shortsToDelete.forEach(s -> {
             removeCachedShort(s, password);
-            if(nosql)
-                DB.deleteOne(s);
-            else
-                PostgresDB.deleteOne(s);
+            Result<Short> res = nosql? DB.deleteOne(s) : PostgresDB.deleteOne(s);
+            if(!res.isOK()) return;
         });
 
         // delete follows

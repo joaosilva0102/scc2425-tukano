@@ -1,0 +1,7 @@
+java -cp target/tukano-1-jar-with-dependencies.jar mgt.AzureManagement
+
+mvn clean compile package azure-functions:deploy
+
+mvn clean compile package azure-webapp:deploy
+
+mvn clean compile package tomcat7:redeploy
