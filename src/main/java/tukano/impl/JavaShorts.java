@@ -67,7 +67,7 @@ public class JavaShorts implements Shorts {
             Cache.insertIntoCache(String.format(SHORT_FMT, shortId), shrtRes.value());
         }
 
-        var query = format("SELECT * FROM likes WHERE shortId = '%s'", shortId); // TODO Cache likes (?) Maybe create Az Function to update likes
+        var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId); // TODO Cache likes (?) Maybe create Az Function to update likes
         int likes = DB.sql(query, Likes.class).size();
 
         return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(likes));
@@ -86,12 +86,12 @@ public class JavaShorts implements Shorts {
             if(!removeCachedShort(shrt).isOK())
                 return Result.error(BAD_REQUEST);
 
-            var query = format("SELECT * FROM likes WHERE shortId = '%s'", shortId);
+            var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
             List<Likes> likesToDelete = DB.sql(query, Likes.class);
             likesToDelete.forEach(DB::deleteOne);
 
-            // var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            // if(!blobsDeleted.isOK()) return blobsDeleted;
+            var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+            if(!blobsDeleted.isOK()) return blobsDeleted;
 
             DB.deleteOne(shrt);
 
@@ -106,7 +106,7 @@ public class JavaShorts implements Shorts {
         String cacheKey = String.format(USER_SHORTS_FMT, userId);
         List<Short> shorts = Cache.getList(cacheKey, Short.class).value();
         if(!Cache.isListCached(cacheKey)) {
-            var query = format("SELECT * FROM shorts WHERE ownerId = '%s'", userId);
+            var query = format("SELECT * FROM shorts s WHERE s.ownerId = '%s'", userId);
             shorts = DB.sql(query, Short.class);
 
             Cache.replaceList(cacheKey, shorts);
@@ -140,7 +140,7 @@ public class JavaShorts implements Shorts {
     public Result<List<String>> followers(String userId, String password) {
         Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
 
-        var query = format("SELECT * FROM following WHERE followee = '%s'", userId);
+        var query = format("SELECT * FROM following f WHERE f.followee = '%s'", userId);
 
         return errorOrValue(okUser(userId, password), DB.sql(query, Following.class)
                     .stream().map(Following::getFollower).collect(Collectors.toList()));
@@ -163,7 +163,7 @@ public class JavaShorts implements Shorts {
         Log.info(() -> format("likes : shortId = %s, pwd = %s\n", shortId, password));
 
         return errorOrResult(getShort(shortId), shrt -> {
-            var query = format("SELECT * FROM likes WHERE shortId = '%s'", shortId);
+            var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
 
             return errorOrValue(okUser(shrt.getOwnerId(), password), DB.sql(query, Likes.class)
                         .stream().map(Likes::getUserId).collect(Collectors.toList()));

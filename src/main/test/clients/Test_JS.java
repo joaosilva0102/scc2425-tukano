@@ -1,5 +1,7 @@
 package main.test.clients;
 
+import java.io.File;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
@@ -78,7 +80,7 @@ public class Test_JS {
 		show(s5 = shorts.createShort("wales", "12345"));
 		show(s6 = shorts.createShort("wales", "12345"));
 
-		/*var blobUrl = URI.create(s2.value().getBlobUrl());
+		var blobUrl = URI.create(s2.value().getBlobUrl());
 		System.out.println( "------->" + blobUrl );
 
 		var blobId = new File( blobUrl.getPath() ).getName();
@@ -86,7 +88,7 @@ public class Test_JS {
 
 		var token = blobUrl.getQuery().split("=")[1];
 
-		blobs.upload(blobUrl.toString(), randomBytes(100), token);*/
+		blobs.upload(blobUrl.toString(), randomBytes(100), token);
 
 
 		var s1id = s1.value().getShortId();

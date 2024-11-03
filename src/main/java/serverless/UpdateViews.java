@@ -1,10 +1,13 @@
 package serverless;
 
+import com.azure.cosmos.*;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.annotation.BindingName;
 import com.microsoft.azure.functions.annotation.BlobTrigger;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import tukano.api.Short;
+import utils.Props;
+import utils.database.CosmosDB;
 import utils.database.DB;
 
 public class UpdateViews {
@@ -24,6 +27,8 @@ public class UpdateViews {
 			@BindingName("userId") String userId,
 			@BindingName("shortId") String shortId,
 			final ExecutionContext context) {
+
+
 
 		context.getLogger().info(String.format("blobFunctionExample: blob : %s, userId : %s, updated with %d bytes", shortId, userId, content.length));
 	}
