@@ -36,12 +36,12 @@ public class TukanoRecommends {
             for (String key : shortKeys) {
                 Map<String, String> data = jedis.hgetAll(key);
 
-                int totalViews = Integer.parseInt(data.getOrDefault("totalViews", "0"));
+                int totalviews = Integer.parseInt(data.getOrDefault("totalViews", "0"));
                 int likes = Integer.parseInt(data.getOrDefault("totalLikes", "0"));
                 long timestamp = Long.parseLong(data.getOrDefault("timestamp", "0"));
                 String blobUrl = data.getOrDefault("blobUrl", "");
                 String ownerId = data.getOrDefault("ownerId", "");
-                Short s = new Short(key, ownerId, blobUrl, timestamp, likes, totalViews);
+                Short s = new Short(key, ownerId, blobUrl, timestamp, likes, totalviews);
                 shorts.add(s);
             }
 

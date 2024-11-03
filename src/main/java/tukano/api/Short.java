@@ -25,11 +25,11 @@ public class Short {
 	String blobUrl;
 	long timestamp;
 	int totalLikes;
-	int totalViews;
+	int totalviews;
 
 	public Short() {}
 
-	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
+	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes, int totalviews) {
 		super();
 		this.shortId = shortId;
 		this.id = shortId;
@@ -37,11 +37,11 @@ public class Short {
 		this.blobUrl = blobUrl;
 		this.timestamp = timestamp;
 		this.totalLikes = totalLikes;
-		this.totalViews = 0;
+		this.totalviews = totalviews;
 	}
 
 	public Short(String shortId, String ownerId, String blobUrl) {
-		this( shortId, ownerId, blobUrl, System.currentTimeMillis(), 0);
+		this( shortId, ownerId, blobUrl, System.currentTimeMillis(), 0, 0);
 	}
 
 	public String getId() {
@@ -92,25 +92,25 @@ public class Short {
 	}
 
 	public int getTotalViews() {
-		return totalViews;
+		return totalviews;
 	}
-	public void setTotalviews(int totalViews) {
-		this.totalViews = totalViews;
+	public void setTotalViews(int totalviews) {
+		this.totalviews = totalviews;
 	}
 
 	public int incrementViews() {
-		return totalViews++;
+		return totalviews++;
 	}
 
 	@Override
 	public String toString() {
 		return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
-				+ timestamp + ", totalLikes=" + totalLikes + ", totalviews=" + totalViews + "]";
+				+ timestamp + ", totalLikes=" + totalLikes + ", totalviews=" + totalviews + "]";
 	}
 
 	public Short copyWithLikes_And_Token( int totLikes) {
 		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(id, timestamp));
-		return new Short( id, ownerId, urlWithToken, timestamp, totLikes);
+		return new Short( id, ownerId, urlWithToken, timestamp, totLikes, totalviews);
 	}
 
 	public Map<String, String> toMap() {
@@ -121,7 +121,7 @@ public class Short {
 		map.put("blobUrl", blobUrl);
 		map.put("timestamp", String.valueOf(timestamp));
 		map.put("totalLikes", String.valueOf(totalLikes));
-		map.put("totalViews", String.valueOf(totalViews));
+		map.put("totalviews", String.valueOf(totalviews));
 		return map;
 	}
 }

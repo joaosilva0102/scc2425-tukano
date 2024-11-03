@@ -106,7 +106,7 @@ public class JavaShorts implements Shorts {
         String cacheKey = String.format(USER_SHORTS_FMT, userId);
         List<Short> shorts = Cache.getList(cacheKey, Short.class).value();
         if(!Cache.isListCached(cacheKey)) {
-            var query = format("SELECT * FROM short WHERE ownerId = '%s'", userId);
+            var query = format("SELECT * FROM shorts WHERE ownerId = '%s'", userId);
             shorts = DB.sql(query, Short.class);
 
             Cache.replaceList(cacheKey, shorts);
@@ -202,7 +202,7 @@ public class JavaShorts implements Shorts {
                 .collect(Collectors.joining(", "));
 
         final var QUERY_2_FMT = """
-					SELECT * FROM short s
+					SELECT * FROM shorts s
 					WHERE s.ownerId IN (%s)
 					ORDER BY s.timestamp DESC
 				""";
@@ -235,7 +235,7 @@ public class JavaShorts implements Shorts {
         // delete shorts
         List<Short> shortsToDelete = Cache.getList(String.format(USER_SHORTS_FMT, userId), Short.class).value();
         if(!Cache.isCached(String.format(USER_SHORTS_FMT, userId))) {
-            var query1 = format("SELECT * FROM short s WHERE s.ownerId = '%s'", userId);
+            var query1 = format("SELECT * FROM shorts s WHERE s.ownerId = '%s'", userId);
             shortsToDelete = DB.sql(query1, Short.class);
         }
         shortsToDelete.forEach(s -> {
