@@ -1,21 +1,16 @@
 package tukano.impl.data;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
 import java.util.Objects;
 
 @Entity
 public class Likes {
 
+	@Id
 	String id;
-
-	@Id
 	String userId;
-
-	@Id
 	String shortId;
 
 	public String getOwnerId() {

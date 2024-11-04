@@ -49,7 +49,7 @@ public class JavaShorts implements Shorts {
 
             return errorOrValue(DB.insertOne(shrt), s -> {
                 if(!insertShortToCache(s, password).isOK())
-                    Log.info("Error inserting short into cache");
+                    Log.warning("Error inserting short into cache");
                 return s.copyWithLikes_And_Token(0);
             });
         });
@@ -66,7 +66,8 @@ public class JavaShorts implements Shorts {
         if(!shrtRes.isOK()) {
             shrtRes = DB.getOne(shortId, Short.class);
             if( !shrtRes.isOK() ) return Result.error(NOT_FOUND);
-            Cache.insertIntoCache(String.format(SHORT_FMT, shortId), shrtRes.value());
+            if(!Cache.insertIntoCache(String.format(SHORT_FMT, shortId), shrtRes.value()).isOK())
+                Log.warning("Error inserting short into cache");
         }
 
         var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId); // TODO Cache likes (?) Maybe create Az Function to update likes
@@ -80,9 +81,8 @@ public class JavaShorts implements Shorts {
         Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
         Result<Short> s = Cache.getFromCache(String.format(SHORT_FMT, shortId), Short.class);
-        if(!s.isOK()){
+        if(!s.isOK())
             s = DB.getOne(shortId, Short.class);
-        }
 
         return errorOrResult(s, shrt -> errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
             if(!removeCachedShort(shrt).isOK())
@@ -92,11 +92,10 @@ public class JavaShorts implements Shorts {
             List<Likes> likesToDelete = DB.sql(query, Likes.class);
             likesToDelete.forEach(DB::deleteOne);
 
-            var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            if(!blobsDeleted.isOK()) return blobsDeleted;
+            //var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+            //if(!blobsDeleted.isOK()) return blobsDeleted;
 
             DB.deleteOne(shrt);
-
             return Result.ok();
         }));
     }
@@ -111,7 +110,8 @@ public class JavaShorts implements Shorts {
             var query = format("SELECT * FROM shorts s WHERE s.ownerId = '%s'", userId);
             shorts = DB.sql(query, Short.class);
 
-            Cache.replaceList(cacheKey, shorts);
+            if(!Cache.replaceList(cacheKey, shorts).isOK())
+                Log.warning("Error replacing user's shorts into cache");
         }
 
         return errorOrValue(okUser(userId), shorts.stream().map(Short::getShortId).toList());
@@ -216,7 +216,9 @@ public class JavaShorts implements Shorts {
 					ORDER BY s.timestamp DESC
 				""";
         List<Short> feed = DB.sql(format(QUERY_2_FMT, usersFormated), Short.class);
-        Cache.replaceList(String.format(FEED_FMT, userId), feed);
+        if(!Cache.replaceList(String.format(FEED_FMT, userId), feed).isOK())
+            Log.warning(String.format("Error updating %s feed into cache", userId));
+
 
         return errorOrValue(okUser(userId, password), feed.stream()
                 .map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));

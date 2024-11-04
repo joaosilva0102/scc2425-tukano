@@ -1,10 +1,16 @@
 package tukano.impl;
 
 import static java.lang.String.format;
+import static tukano.api.Result.ErrorCode.INTERNAL_ERROR;
 import static tukano.api.Result.error;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
+import static tukano.api.Result.ok;
 
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -56,6 +62,7 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
+		incrementShortViews(blobId);
 //		return storage.read( toPath( blobId ) );
 		return cloudStorage.read( toPath( blobId ) );
 	}
@@ -101,5 +108,24 @@ public class JavaBlobs implements Blobs {
 	
 	private String toURL( String blobId ) {
 		return baseURI + blobId ;
+	}
+
+	private Result<Void> incrementShortViews(String blobId) {
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+			String url = System.getProperty("FUNCTIONS_URL") + "/rest/blobs/" + blobId;
+			HttpRequest request = HttpRequest.newBuilder()
+					.uri(URI.create(url))
+					.build();
+
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			if(response.statusCode() != 200)
+				return error(INTERNAL_ERROR);
+		} catch (Exception e) {
+			Log.warning("Error while incrementing short views");
+			return Result.error(INTERNAL_ERROR);
+		}
+
+		return Result.ok();
 	}
 }
