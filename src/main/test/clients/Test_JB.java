@@ -39,7 +39,7 @@ public class Test_JB {
 
 		System.out.println("***************TEST USERS************************");
 
-			show(users.getUser("TukanoRecomends", "12345"));
+			show(users.getUser("Tukano", "12345"));
 		 show(users.createUser( new User("wales", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
 		 
 		 show(users.createUser( new User("liskov", "54321", "liskov@mit.edu", "Barbara Liskov") ));
@@ -94,6 +94,7 @@ public class Test_JB {
 		Result<Short> s4, s5;
 		show(users.createUser( new User("wales3", "123456", "jimmydn@wikipedia.pt", "Jimmy asfWalesn") ));
 		show(users.createUser( new User("jb3", "54321", "emaial@jb.pt", "jbasfb")));
+		show(shorts.followers("Tukano", "12345"));//2 followers
 		show(s4 = shorts.createShort("wales3", "123456"));
 		show(s5 = shorts.createShort("wales3", "123456"));
 		var shortId4 = s4.value().getShortId();
@@ -121,7 +122,7 @@ public class Test_JB {
 		show(users.deleteUser("wales3", "123456"));//Check if all shorts are deleted
 		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted
 		show(users.getUser("jb3", "54321"));//Not found
-		show(users.getUser("wales3", "123"));//Not found
+		show(users.getUser("wales3", "123456"));//Not found
 		show(shorts.getShorts("jb3"));//Not found
 		show(shorts.getShorts("wales3"));//Not found
 

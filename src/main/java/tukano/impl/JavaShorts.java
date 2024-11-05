@@ -176,12 +176,12 @@ public class JavaShorts implements Shorts {
     public Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-        if(tukanoRecommends() != null) {
+        /*if(tukanoRecommends() != null) {
             Log.info("Tukano recommends");
         }
         else{
             Log.info("Tukano recommends failed");
-        }
+        }*/
 
         String cacheKey = String.format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(String.format(FEED_FMT, userId), Short.class).value();
@@ -205,6 +205,10 @@ public class JavaShorts implements Shorts {
         var usersList = result.value();
 
         usersList.add(userId);
+
+        for (String user : usersList) {
+            Log.info(() -> format("User in follow list: %s\n", user));
+        }
 
         String usersFormated = usersList.stream()
                 .map(id -> "'" + id + "'")

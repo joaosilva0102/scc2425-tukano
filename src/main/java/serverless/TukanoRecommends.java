@@ -6,6 +6,7 @@ import redis.clients.jedis.Jedis;
 import tukano.api.Short;
 import tukano.api.User;
 import utils.Props;
+import utils.cache.Cache;
 import utils.cache.RedisCache;
 import com.google.gson.Gson;
 import tukano.impl.JavaShorts;
@@ -40,17 +41,27 @@ public class TukanoRecommends {
             jedis.auth(redisKey);
             Set<String> shortKeys = jedis.keys("short:*");
             List<Short> shorts = new ArrayList<>();
-            User user = new User("TukanoRecomends", "12345", "tukano@tukano.com", " Tukano Recomends");
-            List<Short> delete = (List<Short>) JavaShorts.getInstance().getShorts(user.getUserId());
-            for (Short s : delete){
-                DB.deleteOne(s);
+            User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
+            var result = JavaShorts.getInstance().getShorts(user.getUserId());
+            List<String> toDelete = new ArrayList<>();
+            try {
+                toDelete = result.value();
+                context.getLogger().info("Result: " + result.value());
+            } catch (Exception e) {
+                context.getLogger().severe("Failed to cast result to List<Short>: " + e.getMessage());
+            }
+            for (String s : toDelete){
+                context.getLogger().info("Deleting short: " + s);
+                JavaShorts.getInstance().deleteShort(s, user.getPwd());
             }
 
             for (String key : shortKeys) {
                 String value = jedis.get(key);
                 try {
                     Short s = gson.fromJson(value, Short.class);
-                    shorts.add(new Short(s.getShortId(), user.getUserId(), s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
+                    String newShortId = s.getShortId().replaceAll("^[^+]+", "tukano");
+                    context.getLogger().info("Short: " + newShortId);
+                    shorts.add(new Short(newShortId, user.getUserId(), s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
                 } catch (Exception e) {
                     context.getLogger().severe("Error parsing data for key: " + key);
                 }
@@ -64,7 +75,10 @@ public class TukanoRecommends {
                     .toList();
 
             for (Short s : recShorts){
-                DB.insertOne(s);
+                var shrt = DB.insertOne(s);
+            }
+            for (Short s : recShorts){
+                context.getLogger().info("Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
             }
 
             return request.createResponseBuilder(HttpStatus.OK)

@@ -44,12 +44,17 @@ public class JavaUsers implements Users {
 		if (Cache.isCached(String.format(USER_FMT, user.getUserId())))
 			return error(CONFLICT);
 
-		JavaShorts.getInstance().follow(user.getUserId(), "TukanoRecomends",true, user.getPwd());
 		Result<User> r = DB.insertOne(user);
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
 			Log.info("Error inserting user into cache");
+
+		if(!user.getUserId().equals("Tukano")) {
+			Log.info("Following Tukano:  " + user.getUserId());
+			var result = JavaShorts.getInstance().follow(user.getUserId(), "Tukano", true, user.getPwd());
+			Log.info("Result: " + result);
+		}
 
 		return errorOrValue(r, user.getUserId());
 	}
