@@ -70,7 +70,7 @@ public class JavaShorts implements Shorts {
                 Log.warning("Error inserting short into cache");
         }
 
-        var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId); // TODO Cache likes (?) Maybe create Az Function to update likes
+        var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
         int likes = DB.sql(query, Likes.class).size();
 
         return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(likes));
@@ -92,8 +92,8 @@ public class JavaShorts implements Shorts {
             List<Likes> likesToDelete = DB.sql(query, Likes.class);
             likesToDelete.forEach(DB::deleteOne);
 
-            //var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            //if(!blobsDeleted.isOK()) return blobsDeleted;
+            var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+            if(!blobsDeleted.isOK()) return blobsDeleted;
 
             DB.deleteOne(shrt);
             return Result.ok();
@@ -262,7 +262,7 @@ public class JavaShorts implements Shorts {
         followsToDelete.forEach(DB::deleteOne);
 
         // delete likes
-        var query3 = format("SELECT * FROM likes WHERE ownerId = '%s' OR userId = '%s'", userId, userId);
+        var query3 = format("SELECT * FROM likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
         List<Likes> likesToDelete;
         likesToDelete = DB.sql(query3, Likes.class);
         likesToDelete.forEach(DB::deleteOne);

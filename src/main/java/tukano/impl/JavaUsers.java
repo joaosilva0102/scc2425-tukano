@@ -30,8 +30,7 @@ public class JavaUsers implements Users {
 		return instance;
 	}
 
-	private JavaUsers() {
-	}
+	private JavaUsers() {}
 
 	@Override
 	public Result<String> createUser(User user) {
@@ -43,13 +42,13 @@ public class JavaUsers implements Users {
 		if (Cache.isCached(String.format(USER_FMT, user.getUserId())))
 			return error(CONFLICT);
 
-		JavaShorts.getInstance().follow(user.getUserId(), "TukanoRecomends",true, user.getPwd());
 		Result<User> r = DB.insertOne(user);
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
 			Log.warning("Error inserting user into cache");
 
+		JavaShorts.getInstance().follow(user.getUserId(), "TukanoRecomends",true, user.getPwd());
 		return errorOrValue(r, user.getUserId());
 	}
 
@@ -89,7 +88,6 @@ public class JavaUsers implements Users {
 					return Cache.insertIntoCache(String.format(USER_FMT, userId), updatedUser);
 				});
 	}
-
 
 	@Override
 	public Result<User> deleteUser(String userId, String pwd) {

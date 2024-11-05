@@ -16,17 +16,17 @@ import utils.database.DB;
 
 import java.util.Optional;
 
-public class UpdateShortViews {
+public class IncrementShortViews {
     private static final String SHORTID = "shortId";
     private static final String HTTP_TRIGGER_NAME="req";
-    private static final String HTTP_FUNCTION_NAME="UpdateShortViews";
-    private static final String HTTP_TRIGGER_ROUTE="rest/blobs/{" + SHORTID + "}";
+    private static final String HTTP_FUNCTION_NAME="IncrementShortViews";
+    private static final String HTTP_TRIGGER_ROUTE="rest/short/incrementViews/{" + SHORTID + "}";
 
     @FunctionName(HTTP_FUNCTION_NAME)
     public HttpResponseMessage run(
             @HttpTrigger(
                     name = HTTP_TRIGGER_NAME,
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.POST},
                     authLevel = AuthorizationLevel.ANONYMOUS,
                     route = HTTP_TRIGGER_ROUTE)
             HttpRequestMessage<Optional<String>> request,
@@ -34,11 +34,9 @@ public class UpdateShortViews {
             final ExecutionContext context) {
 
         Props.load("azurekeys-region.props");
-
-        context.getLogger().info(shortId);
         incrementViews(shortId);
 
-        context.getLogger().info("Updated short view count.");
+        context.getLogger().info("Updated short view count: " + shortId);
         return request.createResponseBuilder(HttpStatus.OK).build();
     }
 

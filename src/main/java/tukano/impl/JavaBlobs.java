@@ -4,8 +4,6 @@ import static java.lang.String.format;
 import static tukano.api.Result.ErrorCode.INTERNAL_ERROR;
 import static tukano.api.Result.error;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
-import static tukano.api.Result.ok;
-
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -95,7 +93,7 @@ public class JavaBlobs implements Blobs {
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
 
-		return cloudStorage.deleteAll( toPath(userId));
+		return cloudStorage.deleteAll(userId);
 	}
 
 	private boolean validBlobId(String blobId, String token) {
@@ -113,9 +111,10 @@ public class JavaBlobs implements Blobs {
 	private Result<Void> incrementShortViews(String blobId) {
 		try {
 			HttpClient client = HttpClient.newHttpClient();
-			String url = System.getProperty("FUNCTIONS_URL") + "/rest/blobs/" + blobId;
+			String url = System.getProperty("FUNCTIONS_URL") + "/rest/short/incrementViews/" + blobId;
 			HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
+					.POST(HttpRequest.BodyPublishers.ofString(""))
 					.build();
 
 			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

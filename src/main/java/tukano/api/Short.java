@@ -2,6 +2,7 @@ package tukano.api;
 
 import jakarta.persistence.Id;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import tukano.impl.Token;
 
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.Map;
  *
  */
 @Entity
+@Table(name = "shorts")
 public class Short {
 	@Id
 	String shortId;

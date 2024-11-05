@@ -22,7 +22,7 @@ import static java.lang.String.format;
  *
  */
 public class Hibernate {
-	private static Logger Log = Logger.getLogger(Hibernate.class.getName());
+	private static final Logger Log = Logger.getLogger(Hibernate.class.getName());
 
 	//private static final String HIBERNATE_CFG_FILE = "../../webapp/WEB-INF/hibernate.cfg.xml";
 	private SessionFactory sessionFactory;
@@ -43,7 +43,7 @@ public class Hibernate {
 	 * @return
 	 */
 	synchronized public static Hibernate getInstance() {
-		Log.info("Accessing CosmosDB PostgreSQL...");
+		Log.info("Accessing CosmosDB PostgresSQL...");
 		if (instance == null)
 			instance = new Hibernate();
 		return instance;
