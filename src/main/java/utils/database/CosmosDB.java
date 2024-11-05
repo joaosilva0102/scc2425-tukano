@@ -41,8 +41,8 @@ public class CosmosDB {
             return instance;
 
         CosmosClient client = new CosmosClientBuilder()
-                .endpoint(Props.get("COSMOSDB_URL", ""))
-                .key(Props.get("COSMOSDB_KEY", ""))
+                .endpoint(System.getProperty("COSMOSDB_URL"))
+                .key(System.getProperty("COSMOSDB_KEY"))
                 .directMode()
                 //.gatewayMode()
                 // replace by .directMode() for better performance
@@ -65,7 +65,7 @@ public class CosmosDB {
     private synchronized void init() {
         if (db != null)
             return;
-        db = client.getDatabase(Props.get("COSMOSDB_DATABASE", ""));
+        db = client.getDatabase(System.getProperty("COSMOSDB_DATABASE"));
         for (String containerName : containerMap.values()) {
             containers.put(containerName, db.getContainer(containerName));
         }

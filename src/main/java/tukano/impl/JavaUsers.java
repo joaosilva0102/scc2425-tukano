@@ -16,7 +16,6 @@ import tukano.api.User;
 import tukano.api.Users;
 import utils.cache.Cache;
 import utils.database.DB;
-import utils.database.PostgresDB;
 
 public class JavaUsers implements Users {
 
@@ -31,8 +30,7 @@ public class JavaUsers implements Users {
 		return instance;
 	}
 
-	private JavaUsers() {
-	}
+	private JavaUsers() {}
 
 	@Override
 	public Result<String> createUser(User user) {
@@ -48,7 +46,7 @@ public class JavaUsers implements Users {
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
-			Log.info("Error inserting user into cache");
+			Log.warning("Error inserting user into cache");
 
 		if(!user.getUserId().equals("Tukano")) {
 			Log.info("Following Tukano:  " + user.getUserId());
@@ -96,7 +94,6 @@ public class JavaUsers implements Users {
 				});
 	}
 
-
 	@Override
 	public Result<User> deleteUser(String userId, String pwd) {
 		Log.info(() -> format("deleteUser : userId = %s, pwd = %s\n", userId, pwd));
@@ -135,9 +132,8 @@ public class JavaUsers implements Users {
 			return ok(l);
 		}
 
-		Log.info("List not in cache");
 		// If not in cache, access DB
-		var query = format("SELECT * FROM users WHERE UPPER(userid) LIKE '%%%s%%'", pattern.toUpperCase());
+		var query = format("SELECT * FROM users u WHERE UPPER(u.userid) LIKE '%%%s%%'", pattern.toUpperCase());
 		List<User> dbHits;
 		dbHits = DB.sql(query, User.class)
 				.stream()

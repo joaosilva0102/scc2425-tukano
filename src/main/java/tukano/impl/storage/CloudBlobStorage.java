@@ -2,26 +2,16 @@ package tukano.impl.storage;
 
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.util.BinaryData;
-import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobRange;
-import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
-import com.azure.storage.blob.models.DownloadRetryOptions;
 import tukano.api.Result;
 import utils.Hash;
-import utils.IO;
 import utils.Props;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.function.Consumer;
 
 import static tukano.api.Result.ErrorCode.*;
@@ -63,6 +53,26 @@ public class CloudBlobStorage implements BlobStorage {
     }
 
     @Override
+    public Result<byte[]> read(String path) {
+        BinaryData bytes = null;
+
+        if (path == null)
+            return error(BAD_REQUEST);
+        try {
+            BlobClient blob = containerClient.getBlobClient(path);
+
+            if (!blob.exists())
+                return error(NOT_FOUND);
+
+            bytes = blob.downloadContent();
+            System.out.println("File downloaded : " + path);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bytes != null ? ok(bytes.toBytes()) : error(INTERNAL_ERROR);
+    }
+
+    @Override
     public Result<Void> delete(String path) {
         if (path == null)
             return error(BAD_REQUEST);
@@ -78,26 +88,6 @@ public class CloudBlobStorage implements BlobStorage {
             return error(INTERNAL_ERROR);
         }
         return ok();
-    }
-
-    @Override
-    public Result<byte[]> read(String path) {
-        BinaryData bytes = null;
-
-        if (path == null)
-            return error(BAD_REQUEST);
-        try {
-            BlobClient blob = containerClient.getBlobClient(path);
-
-            if (!blob.exists())
-                return error(NOT_FOUND);
-
-            bytes = blob.downloadContent();
-            System.out.println("File uploaded : " + path);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return bytes != null ? ok(bytes.toBytes()) : error(INTERNAL_ERROR);
     }
 
     @Override
@@ -137,7 +127,7 @@ public class CloudBlobStorage implements BlobStorage {
             return error(BAD_REQUEST);
 
         try {
-            PagedIterable<BlobItem> allBlobs = containerClient.listBlobs();
+            PagedIterable<BlobItem> allBlobs = containerClient.listBlobsByHierarchy(path + "/");
 
             for (BlobItem blobItem : allBlobs) {
                 BlobClient blob = containerClient.getBlobClient(blobItem.getName());

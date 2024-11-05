@@ -54,14 +54,13 @@ public class Cache {
     public static <T> Result<Void> appendList(String key, T obj) {
         try (var jedis = RedisCache.getCachePool().getResource()) {
             long n = jedis.rpush(key, JSON.encode(obj));
-            Log.info(n + "elements appended to list: " + key);
+            Log.info(n + " elements appended to list: " + key);
             return ok();
         }
     }
 
     public static <T> Result<Void> removeFromList(String key, T obj) {
         try (var jedis = RedisCache.getCachePool().getResource()) {
-            System.out.println(JSON.encode(obj));
             long n = jedis.lrem(key, 1, JSON.encode(obj));
             Log.info(n + " elements removed from cache list: " + key);
             return ok();
