@@ -75,13 +75,14 @@ public class TukanoRecommends {
                     .toList();
 
             for (Short s : recShorts){
-                var shrt = DB.insertOne(s);
-            }
-            for (Short s : recShorts){
+                DB.insertOne(s);
                 context.getLogger().info("Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
             }
 
+            context.getLogger().info("Returning top 5 shorts " + recShorts.size());
+
             return request.createResponseBuilder(HttpStatus.OK)
+                    .body(gson.toJson(recShorts))
                     .build();
 
         } catch (Exception e) {

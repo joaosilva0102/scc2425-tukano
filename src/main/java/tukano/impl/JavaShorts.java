@@ -9,7 +9,11 @@ import utils.cache.Cache;
 import utils.database.DB;
 
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -176,15 +180,26 @@ public class JavaShorts implements Shorts {
     public Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-        /*if(tukanoRecommends() != null) {
-            Log.info("Tukano recommends");
+        var res = tukanoRecommends();
+        if(!res.isOK()) return error(res.error());
+        if(res.value() == null) {
+            Log.severe("Error calling tukanoRecommends");
+            return error(INTERNAL_ERROR);
         }
-        else{
-            Log.info("Tukano recommends failed");
-        }*/
+        List<String> shorts = (List<String>) res.value();
+
+        Log.info(() -> format("Tukano recommends: %d\n", shorts.size()));
+
 
         String cacheKey = String.format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(String.format(FEED_FMT, userId), Short.class).value();
+        /*for(Short s : shorts){
+            if(!cachedFeed.contains(s)) {
+                Cache.removeFromCache(cacheKey);
+                break;
+            }
+        }*/
+
         if(Cache.isListCached(cacheKey)) {
             List<Short> sortedFeed = new ArrayList<>(cachedFeed);
             sortedFeed.sort(Comparator.comparing(Short::getTimestamp).reversed());
@@ -308,27 +323,25 @@ public class JavaShorts implements Shorts {
         }
         return ok();
     }
-    private String tukanoRecommends() {
-        String functionUrl = "https://fun6261270373ne.azurewebsites.net/tukano/serverless/";
-        StringBuilder response = new StringBuilder();
+    private Result<Object> tukanoRecommends() {
+        String url = "https://fun6261270373ne.azurewebsites.net/serverless/";
+        //StringBuilder response = new StringBuilder();
 
+        HttpResponse<String> response = null;
         try {
-            URL url = new URL(functionUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .build();
 
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200)
+                return Result.error(INTERNAL_ERROR);
 
-            int status = conn.getResponseCode();
-            if (status != HttpURLConnection.HTTP_OK) {
-                Log.severe("Failed to call HTTP trigger function: " + status);
-                return null;
-            }
         } catch (Exception e) {
             Log.severe("Error while calling HTTP trigger function: " + e.getMessage());
         }
-
-        return response.toString();
+        return Result.ok(response.body());
     }
 }
