@@ -6,11 +6,14 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.models.BlobRange;
+import com.azure.storage.blob.models.DownloadRetryOptions;
 import tukano.api.Result;
 import utils.Hash;
 import utils.Props;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
@@ -92,29 +95,27 @@ public class CloudBlobStorage implements BlobStorage {
 
     @Override
     public Result<Void> read(String path, Consumer<byte[]> sink) {
-        if (path == null)
+        if (path == null) {
             return error(BAD_REQUEST);
+        }
 
         try {
             BlobClient blob = containerClient.getBlobClient(path);
-            if (!blob.exists())
+            if (!blob.exists()) {
                 return error(NOT_FOUND);
+            }
+            try (InputStream inputStream = blob.openInputStream()) {
+                byte[] buffer = new byte[CHUNK_SIZE];
+                int bytesRead;
 
-            long blobSize = blob.getProperties().getBlobSize();
-
-            for (long offset = 0; offset < blobSize; offset += CHUNK_SIZE) {
-                long chunkSize = (long) Math.min(CHUNK_SIZE, blobSize - offset);
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-                /*blob.downloadStreamWithResponse(
-                        new ByteArrayOutputStream(),
-                        new BlobRange(offset, chunkSize),
-                        new DownloadRetryOptions().setMaxRetryRequests(5),
-                        null,
-                        false,
-                        new Context(key2, value2)).getStatusCode()
-                );*/
-                sink.accept(outputStream.toByteArray());
+                while ((bytesRead = inputStream.read(buffer)) != -1) { //denotes end of stream
+                    if (bytesRead < CHUNK_SIZE) {
+                        byte[] bytes = Arrays.copyOf(buffer, bytesRead);
+                        sink.accept(bytes);
+                    } else {
+                        sink.accept(buffer);
+                    }
+                }
             }
             return ok();
         } catch (Exception e) {
