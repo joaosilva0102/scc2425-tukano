@@ -37,7 +37,7 @@ public class Test_JB {
 		*
 		 */
 
-		System.out.println("***************TEST USERS************************");
+		/*System.out.println("***************TEST USERS************************");
 
 			show(users.getUser("Tukano", "12345"));
 		 show(users.createUser( new User("wales", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
@@ -51,10 +51,10 @@ public class Test_JB {
 		 show(users.deleteUser("wales", "12345"));
 		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null
 
-		/*
+		*//*
 		* TEST SHORTS
 		*
-		 */
+		 *//*
 		System.out.println("***************TEST SHORTS 1 ************************");
 		Result<Short> s1, s3;
 		show(users.createUser( new User("wales1", "12345", "jimmyafs@wikipedia.pt", "Jimmy Wsales") ));
@@ -120,14 +120,47 @@ public class Test_JB {
 
 		System.out.println("* Deletes *");
 		show(users.deleteUser("wales3", "123456"));//Check if all shorts are deleted
-		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted
-		show(users.getUser("jb3", "54321"));//Not found
-		show(users.getUser("wales3", "123456"));//Not found
-		show(shorts.getShorts("jb3"));//Not found
-		show(shorts.getShorts("wales3"));//Not found
+		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted*/
 
-
-
+		System.out.println("***************TEST TUKANORECOMMENDS************************");
+		show(users.createUser( new User("pg", "123456", "jimmaydn@wikipedia.pt", "Jimmy asfWalesn") ));
+		show(users.createUser( new User("pg1", "123456", "pg@afsf.com", "pg1") ));
+		show(users.createUser( new User("pg2", "123456", "pg2@afsf.com", "pg2") ));
+		show(users.createUser( new User("pg3", "123456", "pg3@afsf.com", "pg3") ));
+		show(users.createUser( new User("pg4", "123456", "pg4@afsf.com", "pg4") ));
+		Result<Short> s6, s7, s8, s9, s10, s11, s12, s13, s14, s15;
+		show(s6 = shorts.createShort("pg1", "123456"));
+		show(s7 = shorts.createShort("pg2", "123456"));
+		show(s8 = shorts.createShort("pg3", "123456"));
+		show(s9 = shorts.createShort("pg1", "123456"));
+		show(s10 = shorts.createShort("pg2", "123456"));
+		show(s11 = shorts.createShort("pg3", "123456"));
+		show(s12 = shorts.createShort("pg4", "123456"));
+		show(s13 = shorts.createShort("pg4", "123456"));
+		show(s14 = shorts.createShort("pg4", "123456"));
+		show(s15 = shorts.createShort("pg4", "123456"));
+		show(shorts.like(s6.value().getShortId(), "pg", true, "123456"));
+		show(shorts.like(s7.value().getShortId(), "pg", true, "123456"));
+		show(shorts.like(s8.value().getShortId(), "pg", true, "123456"));
+		show(shorts.like(s9.value().getShortId(), "pg", true, "123456"));
+		show(shorts.like(s10.value().getShortId(), "pg", true, "123456"));
+		var shortId6 = s6.value().getShortId();
+		System.out.println( "------->" + shortId6);
+		var shortId7 = s7.value().getShortId();
+		System.out.println( "------->" + shortId7);
+		var shortId8 = s8.value().getShortId();
+		System.out.println( "------->" + shortId8);
+		var shortId9 = s9.value().getShortId();
+		System.out.println( "------->" + shortId9);
+		var shortId10 = s10.value().getShortId();
+		System.out.println( "------->" + shortId10);
+		show(shorts.getFeed("pg", "123456"));
+		show(users.deleteUser("pg", "123456"));
+		show(users.deleteUser("pg1", "123456"));
+		show(users.deleteUser("pg2", "123456"));
+		show(users.deleteUser("pg3", "123456"));
+		show(users.deleteUser("pg4", "123456"));
+		show(users.deleteUser("Tukano", "12345"));
 		System.exit(0);
 	}
 	

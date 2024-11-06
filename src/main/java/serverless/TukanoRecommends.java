@@ -9,6 +9,7 @@ import utils.Props;
 import com.google.gson.Gson;
 import tukano.impl.JavaShorts;
 import utils.cache.Cache;
+import utils.cache.RedisCache;
 import utils.database.DB;
 
 import java.util.*;
@@ -80,9 +81,13 @@ public class TukanoRecommends {
                     .limit(5)
                     .toList();
 
+            for(Short s : shorts){
+                context.getLogger().info("Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
+            }
+
             for (Short s : recShorts){
                 DB.insertOne(s);
-                context.getLogger().info("Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
+                context.getLogger().info("REC Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
             }
 
             context.getLogger().info("Returning top 5 shorts " + recShorts.size());
