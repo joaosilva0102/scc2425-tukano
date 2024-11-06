@@ -20,7 +20,7 @@ public class IncrementShortViews {
     private static final String SHORTID = "shortId";
     private static final String HTTP_TRIGGER_NAME="req";
     private static final String HTTP_FUNCTION_NAME="IncrementShortViews";
-    private static final String HTTP_TRIGGER_ROUTE="rest/short/incrementViews/{" + SHORTID + "}";
+    private static final String HTTP_TRIGGER_ROUTE="short/incrementViews/{" + SHORTID + "}";
 
     @FunctionName(HTTP_FUNCTION_NAME)
     public HttpResponseMessage run(

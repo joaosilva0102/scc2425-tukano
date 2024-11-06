@@ -26,7 +26,7 @@ public class CloudBlobStorage implements BlobStorage {
 
     public CloudBlobStorage() {
         containerClient = new BlobContainerClientBuilder()
-                .connectionString(Props.get("BlobStoreConnection", ""))
+                .connectionString(System.getProperty("BlobStoreConnection"))
                 .containerName(BLOBS_CONTAINER_NAME)
                 .buildClient();
     }

@@ -7,6 +7,7 @@ import tukano.api.*;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
+import utils.GSON;
 import utils.cache.Cache;
 import utils.database.DB;
 
@@ -70,10 +71,10 @@ public class JavaShorts implements Shorts {
                 Log.warning("Error inserting short into cache");
         }
 
-        var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
-        int likes = DB.sql(query, Likes.class).size();
+        //var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
+        //int likes = DB.sql(query, Likes.class).size();
 
-        return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(likes));
+        return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(shrt.getTotalLikes()));
     }
 
     @Override
@@ -221,31 +222,21 @@ public class JavaShorts implements Shorts {
     public Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-        var res = tukanoRecommends();
-        if(!res.isOK()) return error(res.error());
-        if(res.value() == null) {
-            Log.severe("Error calling tukanoRecommends");
-            return error(INTERNAL_ERROR);
+        Result<List<Short>> res = tukanoRecommends();
+        if(!res.isOK()) {
+            Log.severe("Error while retrieving tukano recommends shorts");
+            return Result.error(INTERNAL_ERROR);
         }
-        Log.info(() -> "Type of res.value(): " + (res.value() != null ? res.value().getClass().getName() : "null"));
-        String reshorts = (String) res.value();//returns JSON
-        List<Short> shorts = gson.fromJson(reshorts, new TypeToken<List<Short>>(){}.getType());
-
-        if (shorts == null || shorts.isEmpty()) {
-            Log.severe("Failed to parse JSON response or no shorts available");
-            return error(INTERNAL_ERROR);
-        }
+        List<Short> shorts = res.value();
         Log.info(() -> format("Shorts size  : %d\n", shorts.size()));
-
 
         String cacheKey = format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
-        for(Short s : shorts){
+        for(Short s : shorts)
             if(!cachedFeed.contains(s)) {
                 Cache.removeFromCache(cacheKey);
                 break;
             }
-        }
 
         if(Cache.isListCached(cacheKey)) {
             List<Short> sortedFeed = new ArrayList<>(cachedFeed);
@@ -258,19 +249,17 @@ public class JavaShorts implements Shorts {
 					SELECT * FROM following f
 					WHERE f.follower = '%s'
 				""";
-        Result<List<String>> result;
-        result = errorOrValue(okUser(userId, password), DB.sql(format(QUERY_1_FMT, userId), Following.class)
-            .stream().map(Following::getFollowee).collect(Collectors.toList()));
+        Result<List<String>> result = errorOrValue(okUser(userId, password),
+                DB.sql(format(QUERY_1_FMT, userId), Following.class)
+                .stream().map(Following::getFollowee).collect(Collectors.toList()));
 
         if(!result.isOK()) return result;
 
         var usersList = result.value();
-
         usersList.add(userId);
 
-        for (String user : usersList) {
+        for (String user : usersList)
             Log.info(() -> format("User in follow list: %s\n", user));
-        }
 
         String usersFormated = usersList.stream()
                 .map(id -> "'" + id + "'")
@@ -358,10 +347,10 @@ public class JavaShorts implements Shorts {
                 String feedKey = format(FEED_FMT, followerId);
                 Cache.appendList(feedKey, shrt);
             }
+            return ok();
         } catch (Exception e) {
             return error(BAD_REQUEST);
         }
-        return ok();
     }
 
     private Result<Void> removeCachedShort(Short shrt) {
@@ -377,12 +366,22 @@ public class JavaShorts implements Shorts {
                 String feedKey = format(FEED_FMT, follower.getFollower());
                 Cache.removeFromList(feedKey, shrt);
             }
+            return ok();
         } catch (Exception e) {
             return error(BAD_REQUEST);
         }
-        return ok();
     }
 
+    private Result<List<Short>> tukanoRecommends() {
+        Result<Object> res = callFunctionTukanoRecommends();
+        if(!res.isOK()) return error(res.error());
+        String reshorts = (String) res.value();//returns JSON
+        if(reshorts == null) {
+            Log.severe("Error calling tukanoRecommends");
+            return error(INTERNAL_ERROR);
+        }
+        Log.info(() -> "Type of res.value(): " + (res.value() != null ? res.value().getClass().getName() : "null"));
+        List<Short> shorts = gson.fromJson(reshorts, new TypeToken<List<Short>>(){}.getType());
 
     private Result<Object> tukanoRecommends() {
         String url = System.getProperty("TUKANO_RECOMMENDS_URL");
@@ -396,14 +395,16 @@ public class JavaShorts implements Shorts {
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200)
                 return error(INTERNAL_ERROR);
 
+            return ok(response.body());
         } catch (Exception e) {
             Log.severe("Error while calling HTTP trigger function: " + e.getMessage());
+            return error(INTERNAL_ERROR);
         }
-        return ok(response.body());
+
     }
 
 }
