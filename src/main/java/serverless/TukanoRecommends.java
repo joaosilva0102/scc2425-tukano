@@ -27,19 +27,19 @@ public class TukanoRecommends {
                     name = "reqShort",
                     methods = {HttpMethod.GET, HttpMethod.POST},
                     authLevel = AuthorizationLevel.ANONYMOUS,
-                    route = "serverless/")
+                    route = "/rest/short/tukanoRecommends")
             HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
 
         context.getLogger().info("HTTP trigger to fetch top 5 shorts from Redis Cache");
-
-        //try (var jedis = RedisCache.getCachePool().getResource()) {
-        try{
-            Props.load("azurekeys-region.props");
-            String redisHost =  System.getProperty("REDIS_HOSTNAME");
+        Props.load("azurekeys-region.props");
+        try (var jedis = RedisCache.getCachePool().getResource()) {
+        //try{
+            //Props.load("azurekeys-region.props");
+            /*String redisHost =  System.getProperty("REDIS_HOSTNAME");
             String redisKey = System.getProperty("REDIS_KEY");
             Jedis jedis = new Jedis(redisHost,6380, true);
-            jedis.auth(redisKey);
+            jedis.auth(redisKey);*/
             Set<String> shortKeys = jedis.keys("short:*");
             String cacheKey = format("user:%s:shorts", "Tukano");
             List<Short> tukanoshorts = Cache.getList(cacheKey, Short.class).value();

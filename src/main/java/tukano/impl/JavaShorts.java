@@ -385,7 +385,7 @@ public class JavaShorts implements Shorts {
 
 
     private Result<Object> tukanoRecommends() {
-        String url = "https://fun6261270373ne.azurewebsites.net/serverless/";
+        String url = System.getProperty("TUKANO_RECOMMENDS_URL");
         //StringBuilder response = new StringBuilder();
 
         HttpResponse<String> response = null;
