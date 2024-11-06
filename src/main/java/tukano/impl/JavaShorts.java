@@ -178,8 +178,31 @@ public class JavaShorts implements Shorts {
         return errorOrResult(getShort(shortId), shrt -> {
             var l = new Likes(userId, shortId, shrt.getOwnerId());
 
-            return errorOrVoid(okUser(userId, password), isLiked ? DB.insertOne(l) : DB.deleteOne(l));
+            return errorOrVoid(okUser(userId, password), isLiked ? changeLikes(shrt,true,l) : changeLikes(shrt,false,l));
         });
+    }
+
+    private Result<Likes> changeLikes(Short shrt, boolean isLiked, Likes l) {
+        if(isLiked){
+            shrt.setTotalLikes(shrt.getTotalLikes() + 1);
+            DB.updateOne(shrt);
+            var shrtCache = Cache.isCached(format(SHORT_FMT, shrt.getShortId()));
+            if(shrtCache) {
+                Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId()));
+                Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
+            }
+            return DB.insertOne(l);
+        }
+        else{
+            shrt.setTotalLikes(shrt.getTotalLikes() - 1);
+            DB.updateOne(shrt);
+            var shrtCache = Cache.isCached(format(SHORT_FMT, shrt.getShortId()));
+            if(shrtCache) {
+                Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId()));
+                Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
+            }
+            return DB.deleteOne(l);
+        }
     }
 
     @Override

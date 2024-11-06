@@ -160,7 +160,6 @@ public class Test_JB {
 		show(users.deleteUser("pg2", "123456"));
 		show(users.deleteUser("pg3", "123456"));
 		show(users.deleteUser("pg4", "123456"));
-		show(users.deleteUser("Tukano", "12345"));
 		System.exit(0);
 	}
 	
