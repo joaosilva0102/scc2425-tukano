@@ -117,7 +117,7 @@ public class JavaBlobs implements Blobs {
 	private Result<Void> incrementShortViews(String blobId) {
 		try {
 			HttpClient client = HttpClient.newHttpClient();
-			String url = System.getProperty("FUNCTIONS_INCREMENT_URL") + "/short/incrementViews/" + blobId;
+			String url = System.getProperty("FUNCTIONS_INCREMENT_URL") + blobId;
 			HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
 					.POST(HttpRequest.BodyPublishers.ofString(""))
