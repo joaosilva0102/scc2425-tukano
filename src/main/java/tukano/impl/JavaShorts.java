@@ -1,5 +1,7 @@
 package tukano.impl;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import tukano.api.Short;
 import tukano.api.*;
 import tukano.impl.data.Following;
@@ -8,16 +10,9 @@ import tukano.impl.rest.TukanoRestServer;
 import utils.cache.Cache;
 import utils.database.DB;
 
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.net.http.*;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -31,6 +26,7 @@ public class JavaShorts implements Shorts {
     private static final String SHORT_FMT = "short:%s";
     private static final String USER_SHORTS_FMT = "user:%s:shorts";
     private static final String FEED_FMT = "user:%s:feed";
+    private static final Gson gson = new Gson();
 
     private static Shorts instance;
 
@@ -66,11 +62,11 @@ public class JavaShorts implements Shorts {
         if( shortId == null )
             return error(BAD_REQUEST);
 
-        Result<Short> shrtRes = Cache.getFromCache(String.format(SHORT_FMT, shortId), Short.class);
+        Result<Short> shrtRes = Cache.getFromCache(format(SHORT_FMT, shortId), Short.class);
         if(!shrtRes.isOK()) {
             shrtRes = DB.getOne(shortId, Short.class);
-            if( !shrtRes.isOK() ) return Result.error(NOT_FOUND);
-            if(!Cache.insertIntoCache(String.format(SHORT_FMT, shortId), shrtRes.value()).isOK())
+            if( !shrtRes.isOK() ) return error(NOT_FOUND);
+            if(!Cache.insertIntoCache(format(SHORT_FMT, shortId), shrtRes.value()).isOK())
                 Log.warning("Error inserting short into cache");
         }
 
@@ -84,31 +80,53 @@ public class JavaShorts implements Shorts {
     public Result<Void> deleteShort(String shortId, String password) {
         Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
-        Result<Short> s = Cache.getFromCache(String.format(SHORT_FMT, shortId), Short.class);
-        if(!s.isOK())
+        Result<Short> s = Cache.getFromCache(format(SHORT_FMT, shortId), Short.class);
+        if (!s.isOK())
             s = DB.getOne(shortId, Short.class);
 
         return errorOrResult(s, shrt -> errorOrResult(okUser(shrt.getOwnerId(), password), user -> {
-            if(!removeCachedShort(shrt).isOK())
-                return Result.error(BAD_REQUEST);
+            if (!removeCachedShort(shrt).isOK())
+                return error(BAD_REQUEST);
 
             var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
             List<Likes> likesToDelete = DB.sql(query, Likes.class);
             likesToDelete.forEach(DB::deleteOne);
 
             var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            if(!blobsDeleted.isOK()) return blobsDeleted;
+            if (!blobsDeleted.isOK()) return blobsDeleted;
 
             DB.deleteOne(shrt);
-            return Result.ok();
+
+            String tukanoShrtId = shrt.getShortId().replaceAll("^[^+]+", "tukano");
+
+            Result<Short> newShort = Cache.getFromCache(format(SHORT_FMT, tukanoShrtId), Short.class);
+            if (!newShort.isOK())
+                newShort = DB.getOne(tukanoShrtId, Short.class);
+
+            return errorOrResult(newShort, newShrt -> {
+                if (!removeCachedShort(newShrt).isOK())
+                    return error(BAD_REQUEST);
+
+                var newQuery = format("SELECT * FROM likes l WHERE l.shortId = '%s'", tukanoShrtId);
+                List<Likes> newLikesToDelete = DB.sql(newQuery, Likes.class);
+                newLikesToDelete.forEach(DB::deleteOne);
+
+                var newBlobsDeleted = JavaBlobs.getInstance().delete(newShrt.getShortId(), Token.get(newShrt.getShortId()));
+                if (!newBlobsDeleted.isOK()) return newBlobsDeleted;
+
+                DB.deleteOne(newShrt);
+                return ok();
+            });
         }));
     }
+
+
 
     @Override
     public Result<List<String>> getShorts(String userId) {
         Log.info(() -> format("getShorts : userId = %s\n", userId));
 
-        String cacheKey = String.format(USER_SHORTS_FMT, userId);
+        String cacheKey = format(USER_SHORTS_FMT, userId);
         List<Short> shorts = Cache.getList(cacheKey, Short.class).value();
         if(!Cache.isListCached(cacheKey)) {
             var query = format("SELECT * FROM shorts s WHERE s.ownerId = '%s'", userId);
@@ -132,11 +150,11 @@ public class JavaShorts implements Shorts {
 
             if(!res.isOK()) return res;
 
-            List<Short> followeeShorts = Cache.getList(String.format(USER_SHORTS_FMT, userId2), Short.class).value();
+            List<Short> followeeShorts = Cache.getList(format(USER_SHORTS_FMT, userId2), Short.class).value();
             if( isFollowing )
-                followeeShorts.forEach(s -> Cache.appendList(String.format(FEED_FMT, userId1), s));
+                followeeShorts.forEach(s -> Cache.appendList(format(FEED_FMT, userId1), s));
             else
-                followeeShorts.forEach(s -> Cache.removeFromList(String.format(FEED_FMT, userId1), s));
+                followeeShorts.forEach(s -> Cache.removeFromList(format(FEED_FMT, userId1), s));
 
             return res;
         });
@@ -186,19 +204,25 @@ public class JavaShorts implements Shorts {
             Log.severe("Error calling tukanoRecommends");
             return error(INTERNAL_ERROR);
         }
-        List<String> shorts = (List<String>) res.value();
+        Log.info(() -> "Type of res.value(): " + (res.value() != null ? res.value().getClass().getName() : "null"));
+        String reshorts = (String) res.value();//returns JSON
+        List<Short> shorts = gson.fromJson(reshorts, new TypeToken<List<Short>>(){}.getType());
 
-        Log.info(() -> format("Tukano recommends: %d\n", shorts.size()));
+        if (shorts == null || shorts.isEmpty()) {
+            Log.severe("Failed to parse JSON response or no shorts available");
+            return error(INTERNAL_ERROR);
+        }
+        Log.info(() -> format("Shorts size  : %d\n", shorts.size()));
 
 
-        String cacheKey = String.format(FEED_FMT, userId);
-        List<Short> cachedFeed = Cache.getList(String.format(FEED_FMT, userId), Short.class).value();
-        /*for(Short s : shorts){
+        String cacheKey = format(FEED_FMT, userId);
+        List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
+        for(Short s : shorts){
             if(!cachedFeed.contains(s)) {
                 Cache.removeFromCache(cacheKey);
                 break;
             }
-        }*/
+        }
 
         if(Cache.isListCached(cacheKey)) {
             List<Short> sortedFeed = new ArrayList<>(cachedFeed);
@@ -235,8 +259,8 @@ public class JavaShorts implements Shorts {
 					ORDER BY s.timestamp DESC
 				""";
         List<Short> feed = DB.sql(format(QUERY_2_FMT, usersFormated), Short.class);
-        if(!Cache.replaceList(String.format(FEED_FMT, userId), feed).isOK())
-            Log.warning(String.format("Error updating %s feed into cache", userId));
+        if(!Cache.replaceList(format(FEED_FMT, userId), feed).isOK())
+            Log.warning(format("Error updating %s feed into cache", userId));
 
 
         return errorOrValue(okUser(userId, password), feed.stream()
@@ -263,17 +287,29 @@ public class JavaShorts implements Shorts {
             return error(FORBIDDEN);
 
         // delete shorts
-        List<Short> shortsToDelete = Cache.getList(String.format(USER_SHORTS_FMT, userId), Short.class).value();
-        if(!Cache.isCached(String.format(USER_SHORTS_FMT, userId))) {
+        List<Short> shortsToDelete = Cache.getList(format(USER_SHORTS_FMT, userId), Short.class).value();
+        if(!Cache.isCached(format(USER_SHORTS_FMT, userId))) {
             var query1 = format("SELECT * FROM shorts s WHERE s.ownerId = '%s'", userId);
             shortsToDelete = DB.sql(query1, Short.class);
         }
+
+        List<Short> tukanoShorts = Cache.getList(format(USER_SHORTS_FMT, "Tukano"), Short.class).value();
+        if (!Cache.isCached(format(USER_SHORTS_FMT, "Tukano"))) {
+            var query2 = "SELECT * FROM shorts s WHERE s.ownerId = 'Tukano'";
+            tukanoShorts = DB.sql(query2, Short.class);
+        }
+
         shortsToDelete.forEach(s -> {
             removeCachedShort(s);
             DB.deleteOne(s);
         });
 
-        Cache.removeFromCache(String.format(USER_SHORTS_FMT, userId));
+        tukanoShorts.forEach(s -> {
+            removeCachedShort(s);
+            DB.deleteOne(s);
+        });
+
+        Cache.removeFromCache(format(USER_SHORTS_FMT, userId));
 
         // delete follows
         var query2 = format("SELECT * FROM following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);
@@ -286,43 +322,45 @@ public class JavaShorts implements Shorts {
         likesToDelete = DB.sql(query3, Likes.class);
         likesToDelete.forEach(DB::deleteOne);
 
-        return Result.ok();
+        return ok();
     }
 
     private Result<Void> insertShortToCache(Short shrt, String password) {
         try {
-            Cache.insertIntoCache(String.format(SHORT_FMT, shrt.getShortId()), shrt);
-            Cache.appendList(String.format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt);
+            Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
+            Cache.appendList(format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt);
             List<String> followers = followers(shrt.getOwnerId(), password).value();
             followers.add(shrt.getOwnerId());
             for (String followerId : followers) {
-                String feedKey = String.format(FEED_FMT, followerId);
+                String feedKey = format(FEED_FMT, followerId);
                 Cache.appendList(feedKey, shrt);
             }
         } catch (Exception e) {
-            return Result.error(BAD_REQUEST);
+            return error(BAD_REQUEST);
         }
         return ok();
     }
 
     private Result<Void> removeCachedShort(Short shrt) {
         try {
-            if(!Cache.removeFromCache(String.format(SHORT_FMT, shrt.getShortId())).isOK() ||
-                    !Cache.removeFromList(String.format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt).isOK() ||
-                    !Cache.removeFromList(String.format(FEED_FMT, shrt.getOwnerId()), shrt).isOK())
+            if(!Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId())).isOK() ||
+                    !Cache.removeFromList(format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt).isOK() ||
+                    !Cache.removeFromList(format(FEED_FMT, shrt.getOwnerId()), shrt).isOK())
                 Log.info("Error deleting short from cache");
 
             var query2 = format("SELECT * FROM Following f WHERE f.followee = '%s'", shrt.getOwnerId());
             var followsToDelete = DB.sql(query2, Following.class);
             for (Following follower : followsToDelete) {
-                String feedKey = String.format(FEED_FMT, follower.getFollower());
+                String feedKey = format(FEED_FMT, follower.getFollower());
                 Cache.removeFromList(feedKey, shrt);
             }
         } catch (Exception e) {
-            return Result.error(BAD_REQUEST);
+            return error(BAD_REQUEST);
         }
         return ok();
     }
+
+
     private Result<Object> tukanoRecommends() {
         String url = "https://fun6261270373ne.azurewebsites.net/serverless/";
         //StringBuilder response = new StringBuilder();
@@ -337,11 +375,12 @@ public class JavaShorts implements Shorts {
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200)
-                return Result.error(INTERNAL_ERROR);
+                return error(INTERNAL_ERROR);
 
         } catch (Exception e) {
             Log.severe("Error while calling HTTP trigger function: " + e.getMessage());
         }
-        return Result.ok(response.body());
+        return ok(response.body());
     }
+
 }

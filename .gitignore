@@ -3,7 +3,7 @@
 .vscode
 target/
 src/main/resources/azurekeys-region.props
-src/main/resources/azurekeys-northeurope.props
+src/main/resources/azurekeys-region.props
 src/main/resources/application.properties
 .png
 .jpg

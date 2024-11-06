@@ -6,15 +6,12 @@ import redis.clients.jedis.Jedis;
 import tukano.api.Short;
 import tukano.api.User;
 import utils.Props;
-import utils.cache.Cache;
-import utils.cache.RedisCache;
 import com.google.gson.Gson;
 import tukano.impl.JavaShorts;
-import tukano.impl.JavaUsers;
+import utils.cache.Cache;
 import utils.database.DB;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TukanoRecommends {
 
@@ -34,18 +31,20 @@ public class TukanoRecommends {
 
         //try (var jedis = RedisCache.getCachePool().getResource()) {
         try{
-            Props.load("azurekeys-northeurope.props");
+            Props.load("azurekeys-region.props");
             String redisHost =  System.getProperty("REDIS_HOSTNAME");
             String redisKey = System.getProperty("REDIS_KEY");
             Jedis jedis = new Jedis(redisHost,6380, true);
             jedis.auth(redisKey);
             Set<String> shortKeys = jedis.keys("short:*");
+            Set<String> tukanoKeys = jedis.keys("user:Tukano:shorts");
             List<Short> shorts = new ArrayList<>();
             User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
             var result = JavaShorts.getInstance().getShorts(user.getUserId());
             List<String> toDelete = new ArrayList<>();
             try {
                 toDelete = result.value();
+
                 context.getLogger().info("Result: " + result.value());
             } catch (Exception e) {
                 context.getLogger().severe("Failed to cast result to List<Short>: " + e.getMessage());
@@ -53,6 +52,10 @@ public class TukanoRecommends {
             for (String s : toDelete){
                 context.getLogger().info("Deleting short: " + s);
                 JavaShorts.getInstance().deleteShort(s, user.getPwd());
+            }
+            for(String key : tukanoKeys){
+                Cache.removeFromCache(key);
+                //jedis.del(key);
             }
 
             for (String key : shortKeys) {
