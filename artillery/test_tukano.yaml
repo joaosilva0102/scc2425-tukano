@@ -2,25 +2,27 @@ config:
   target: http://127.0.0.1:8080/rest
   plugins:
     metrics-by-endpoint: { } # Used to get metrics for each endpoint individually.
+
   phases:
     - name: "Warm-up phase"
-      duration: 30
+      duration: 10
+      arrivalRate: 1
+      rampTo: 5
+
+    - name: "Steady phase"
+      duration: 10
       arrivalRate: 5
       rampTo: 10
 
-    - name: "Steady phase"
-      duration: 120
-      arrivalRate: 20
-
     - name: "Peak phase"
-      duration: 30
-      arrivalRate: 50
+      duration: 5
+      arrivalRate: 10
+      rampTo: 20
 
   processor: ./test-utils.js  # JavaScript file for custom functions
 
 scenarios:
-  - name: 'Register user'
-    weight: 2
+  - name: 'User Tests'
     flow:
       - post:
           url: /users/
@@ -29,19 +31,12 @@ scenarios:
             Accept: application/json
           beforeRequest: "uploadRandomizedUser"
           afterResponse: "processRegisterReply"
-
-  - name: "Get user"
-    weight: 3
-    flow:
       - get:
           url: "/users/{{ username }}?pwd={{ password }}"
           headers:
+            Content-Type: application/json
             Accept: application/json
           beforeRequest: "getRandomUser"
-
-  - name: "Update user"
-    weight: 1
-    flow:
       - put:
           url: "/users/{{ username }}?pwd={{ password }}"
           headers:
@@ -49,105 +44,62 @@ scenarios:
             Accept: application/json
           beforeRequest: "updateRandomUser"
           afterRequest: "processUpdateUser"
-
-  - name: "Delete user"
-    weight: 1
-    flow:
-      - delete:
-          url: "/users/{{ username }}?pwd={{ password }}"
-          headers:
-            Accept: application/json
-          beforeRequest: "getRandomUser"
-          afterRequest: "processDeleteUser"
-
-  - name: "List users"
-    weight: 1
-    flow:
       - get:
-          url: "/users?pattern={{ randomPattern }}"
+          url: "/users?query={{ pattern }}"
           headers:
+            Content-Type: application/json
             Accept: application/json
           beforeRequest: "randomPattern"
 
-  - name: "Create short"
-    weight: 2
+  - name: "Short Tests"
     flow:
-      - post:
+      - post: # Create Short
           url: "/shorts/{{ username }}?pwd={{ password }}"
           headers:
             Accept: application/json
           beforeRequest: "getRandomUser"
           afterResponse: "processShortReply"
-
-  - name: "Get short"
-    weight: 3
-    flow:
-      - get:
+      - get: # Get Short
           url: "/shorts/{{ shortId }}"
           headers:
             Accept: application/json
           beforeRequest: "getRandomShort"
-
-  - name: "Delete short"
-    weight: 1
-    flow:
-      - delete:
+      - get: # Get Shorts
+          url: "/shorts/{{ username }}/shorts"
+          headers:
+            Accept: application/json
+          beforeRequest: "getRandomUser"
+      - get: # Get Likes
+          url: "/shorts/{{ shortId }}/likes?pwd={{ password }}"
+          headers:
+            Accept: application/json
+          beforeRequest: "getRandomShortAndOwner"
+      - get: # Get Followers
+          url: "/shorts/{{ username }}/followers?pwd={{ password }}"
+          headers:
+            Accept: application/json
+          beforeRequest: "getRandomUser"
+      - get: # Get Feed
+          url: "/shorts/{{ username }}/feed?pwd={{ password }}"
+          headers:
+            Accept: application/json
+          beforeRequest: "getRandomUser"
+      - delete: # Delete Short
           url: "/shorts/{{ shortId }}?pwd={{ password }}"
           headers:
             Accept: application/json
           beforeRequest: "getRandomShortAndOwner"
           afterRequest: "processDeleteShort"
-
-  - name: "List shorts from user"
-    weight: 2
-    flow:
-      - get:
-          url: "/shorts/{{ username }}/shorts"
+      - delete: # Delete User
+          url: "/users/{{ username }}?pwd={{ password }}"
           headers:
+            Content-Type: application/json
             Accept: application/json
           beforeRequest: "getRandomUser"
+          afterRequest: "processDeleteUser"
 
-  #- name: "Like short"
-  #  weight: 4
-  #  flow:
-  #    - post:
-  #        url: "/shorts/{{ shortId }}/{{ username }}/likes?pwd={{ password }}"
-  #        headers:
-  #          Accept: application/json
-  #        beforeRequest: "getRandomShortAndUser"
 
-  - name: "List short likes"
-    weight: 1
-    flow:
-      - get:
-          url: "/shorts/{{ shortId }}/likes?pwd={{ password }}"
-          headers:
-            Accept: application/json
-          beforeRequest: "getRandomShortAndOwner"
 
-  #- name: "Follow user"
-  #  weight: 3
-  #  flow:
-  #    - post:
-  #        url: "/shorts/{{ followerUsername }}/{{ followeeUsername }}/followers?pwd={{ password }}"
-  #        headers:
-  #          Accept: application/json
-  #        beforeRequest: "selectUserPair"
 
-  - name: "List followers"
-    weight: 1
-    flow:
-      - get:
-          url: "/shorts/{{ username }}/followers?pwd={{ password }}"
-          headers:
-            Accept: application/json
-          beforeRequest: "getRandomUser"
 
-  - name: "List user feed"
-    weight: 3
-    flow:
-      - get:
-          url: "/shorts/{{ username }}/feed?pwd={{ password }}"
-          headers:
-            Accept: application/json
-          beforeRequest: "getRandomUser"
+

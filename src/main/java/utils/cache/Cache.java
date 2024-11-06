@@ -4,6 +4,7 @@ import tukano.api.Result;
 import utils.JSON;
 
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import static tukano.api.Result.ErrorCode.NOT_FOUND;
@@ -110,6 +111,13 @@ public class Cache {
     public static void flushAll() {
         try (var jedis = RedisCache.getCachePool().getResource()) {
             jedis.flushAll();
+        }
+    }
+
+    public static Result<Set<String>> getKeys(String pattern) {
+        try (var jedis = RedisCache.getCachePool().getResource()) {
+            Set<String> keys = jedis.keys(pattern);
+            return ok(keys);
         }
     }
 }

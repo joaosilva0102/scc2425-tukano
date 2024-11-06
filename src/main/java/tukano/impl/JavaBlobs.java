@@ -60,7 +60,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-		incrementShortViews(blobId);
+		Result<Void> incRes = incrementShortViews(blobId);
+		if(!incRes.isOK()) return Result.error(incRes.error());
 //		return storage.read( toPath( blobId ) );
 		return cloudStorage.read( toPath( blobId ) );
 	}
@@ -111,7 +112,7 @@ public class JavaBlobs implements Blobs {
 	private Result<Void> incrementShortViews(String blobId) {
 		try {
 			HttpClient client = HttpClient.newHttpClient();
-			String url = System.getProperty("FUNCTIONS_URL") + "/rest/short/incrementViews/" + blobId;
+			String url = System.getProperty("FUNCTIONS_INCREMENT_URL") + "/short/incrementViews/" + blobId;
 			HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
 					.POST(HttpRequest.BodyPublishers.ofString(""))

@@ -22,18 +22,17 @@ module.exports = {
 
 const fs = require('fs') // Needed for access to blobs.
 
-var registeredUsers = {} // Dictionary with usernames and user object
-var registeredShorts = {} // Dictionary with shorts and short object
-var images = []
+let registeredUsers = {} // Dictionary with usernames and user object
+let registeredShorts = {} // Dictionary with shorts and short object
 
 // All endpoints starting with the following prefixes will be aggregated in the same for the statistics
-var statsPrefix = [ ["/rest/media/","GET"],
+let statsPrefix = [ ["/rest/media/","GET"],
 			["/rest/media","POST"]
 	]
 
 // Function used to compress statistics
 global.myProcessEndpoint = function( str, method) {
-	var i = 0;
+	let i = 0;
 	for( i = 0; i < statsPrefix.length; i++) {
 		if( str.startsWith( statsPrefix[i][0]) && method == statsPrefix[i][1])
 			return method + ":" + statsPrefix[i][0];
@@ -45,7 +44,7 @@ global.myProcessEndpoint = function( str, method) {
 function randomUsername(char_limit){
     const letters = 'abcdefghijklmnopqrstuvwxyz';
     let username = '';
-    let num_chars = randomNumber(1, char_limit);
+    let num_chars = randomNumber(5, char_limit);
     for (let i = 0; i < num_chars; i++) {
         username += letters[Math.floor(Math.random() * letters.length)];
     }
@@ -77,7 +76,7 @@ function randomPassword(pass_len){
 function randomPattern(requestParams, context, ee, next) {
     const letters = 'abcdefghijklmnopqrstuvwxyz';
     let pattern = ""
-    let patternLenght = randomNumer(0, 2)
+    let patternLenght = randomNumber(0, 2)
     for (let i = 0; i < patternLenght; i++) {
         pattern += letters[randomNumber(0, letters.length)];
     }
@@ -92,7 +91,7 @@ function randomPattern(requestParams, context, ee, next) {
 
 function uploadRandomizedUser(requestParams, context, ee, next) {
     let username = randomUsername(10);
-    let pword = randomPassword(15);
+    let pword = randomPassword(10);
     let email = username + "@campus.fct.unl.pt";
     let displayName = username;
 
@@ -108,11 +107,11 @@ function uploadRandomizedUser(requestParams, context, ee, next) {
 }
 
 function getRandomUser(requestParams, context, ee, next) {
-    const rand = randomNumber(0, Object.keys(registeredUsers).length)
-    const user = registeredUsers[rand]
-    console.log(user)
-    let username = user["userId"];
-    let password = user["pwd"];
+    let users = Object.keys(registeredUsers)
+    const rand = randomNumber(0, users.length)
+    const user = registeredUsers[users[rand]]
+    let username = user.userId
+    let password = user.pwd
 
     context.vars.username = username;
     context.vars.password = password;
@@ -121,10 +120,12 @@ function getRandomUser(requestParams, context, ee, next) {
 }
 
 function updateRandomUser(requestParams, context, ee, next) {
-    const oldUser = registeredUsers[randomNumber(0, Object.keys(registeredUsers).length)];
-    const username = oldUser["userId"]
-    const password = oldUser["password"]
-    const newPassword = randomPassword(15)
+    let users = Object.keys(registeredUsers)
+    const rand = randomNumber(0, users.length)
+    const oldUser = registeredUsers[users[rand]]
+    const username = oldUser.userId
+    const password = oldUser.pwd
+    const newPassword = password
     const newEmail = username + "_upd@campus.fct.unl.pt";
     const newDisplayName = username + "_upd"
 
@@ -137,44 +138,46 @@ function updateRandomUser(requestParams, context, ee, next) {
 
     context.vars.username = username
     context.vars.password = password
-
     requestParams.body = JSON.stringify(user);
-
     return next();
 }
 
 function getRandomShort(requestParams, context, ee, next) {
-    const short = registeredShorts[randomNumber(0, Object.keys(registeredShorts).length)]["id"]
-    context.vars.shortId = short["id"]
+    let shorts = Object.keys(registeredShorts)
+    let rand = randomNumber(0, shorts.length)
+    const short = registeredShorts[shorts[rand]]
+    context.vars.shortId = short.shortId
 
     return next();
 }
 
 function getShortOwner(requestParams, context, ee, next) {
     const shortId = context.vars.shortId
-    let username = registeredShorts[shortId]["ownerId"]
-    let password = registeredUsers[username]["password"]
+    let username = registeredShorts[shortId].ownerId
+    let password = registeredUsers[username].password
 
     context.vars.username = username
     context.vars.password = password
+    return next()
 }
 
 function getRandomShortAndUser(requestParams, context, ee, next) {
     getRandomShort(requestParams, context, ee, () => {
         getRandomUser(requestParams, context, ee, next)
     })
-
+    return next()
 }
 
 function getRandomShortAndOwner(requestParams, context, ee, next) {
     getRandomShort(requestParams, context, ee, () => {
         getShortOwner(requestParams, context, ee, next)
     })
+    return next()
 }
 
 function processUpdateUser(requestParams, response, context, ee, next) {
     if( typeof response.body !== 'undefined' && response.body.length > 0) {
-        const username = response.body["username"]
+        const username = response.body.username
         registeredUsers[username] = response.body
     }
     return next();
@@ -183,7 +186,7 @@ function processUpdateUser(requestParams, response, context, ee, next) {
 function processDeleteUser(requestParams, response, context, ee, next) {
     if( typeof response.body !== 'undefined' && response.body.length > 0) {
         const username = context.vars.username
-        registeredUsers = registeredUsers.splice(registeredUsers.indexOf(username), 1);
+        delete registeredUsers[username]
     }
     return next();
 }
@@ -191,7 +194,7 @@ function processDeleteUser(requestParams, response, context, ee, next) {
 function processDeleteShort(requestParams, response, context, ee, next) {
     if( typeof response.body !== 'undefined' && response.body.length > 0) {
         const shortId = context.vars.shortId
-        registeredShorts = registeredShorts.splice(registeredShorts.indexOf(shortId), 1);
+        delete registeredShorts[shortId]
     }
     return next();
 }
@@ -201,6 +204,7 @@ function processDeleteShort(requestParams, response, context, ee, next) {
  */
 function processRegisterReply(requestParams, response, context, ee, next) {
     if( typeof response.body !== 'undefined' && response.body.length > 0) {
+        console.log(response.body)
         registeredUsers[response.body] = context.vars.user;
     }
     return next();
@@ -208,9 +212,9 @@ function processRegisterReply(requestParams, response, context, ee, next) {
 
 function processShortReply(requestParams, response, context, ee, next) {
     if( typeof response.body !== 'undefined' && response.body.length > 0) {
-        const shortId = response.body["id"]
+        const shortId = response.body.shortId
         registeredShorts[shortId] = response.body
     }
-        return next();
+    return next();
 }
 
