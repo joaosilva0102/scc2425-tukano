@@ -13,6 +13,8 @@ import utils.database.DB;
 
 import java.util.*;
 
+import static java.lang.String.format;
+
 public class TukanoRecommends {
 
     private static final Gson gson = new Gson();
@@ -37,7 +39,8 @@ public class TukanoRecommends {
             Jedis jedis = new Jedis(redisHost,6380, true);
             jedis.auth(redisKey);
             Set<String> shortKeys = jedis.keys("short:*");
-            Set<String> tukanoKeys = jedis.keys("user:Tukano:shorts");
+            String cacheKey = format("user:%s:shorts", "Tukano");
+            List<Short> tukanoshorts = Cache.getList(cacheKey, Short.class).value();
             List<Short> shorts = new ArrayList<>();
             User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
             var result = JavaShorts.getInstance().getShorts(user.getUserId());
@@ -53,8 +56,8 @@ public class TukanoRecommends {
                 context.getLogger().info("Deleting short: " + s);
                 JavaShorts.getInstance().deleteShort(s, user.getPwd());
             }
-            for(String key : tukanoKeys){
-                Cache.removeFromCache(key);
+            for(Short ts : tukanoshorts){
+                Cache.removeFromCache(ts.getShortId());
                 //jedis.del(key);
             }
 
