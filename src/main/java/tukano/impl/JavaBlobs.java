@@ -109,6 +109,11 @@ public class JavaBlobs implements Blobs {
 		return baseURI + blobId ;
 	}
 
+	/**
+	 * Calls the Serverless Azure function IncrementShortViews using a HTTP request
+	 * @param blobId id of the blob/short to increment view count
+	 * @return the result of the method
+	 */
 	private Result<Void> incrementShortViews(String blobId) {
 		try {
 			HttpClient client = HttpClient.newHttpClient();

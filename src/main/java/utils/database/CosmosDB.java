@@ -143,10 +143,10 @@ public class CosmosDB {
         } catch (CosmosException ce) {
             System.err.println(ce.getMessage());
             return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-        } /*catch (Exception x) {
+        } catch (Exception x) {
 			x.printStackTrace();
 			return Result.error(ErrorCode.INTERNAL_ERROR);
-		}*/
+		}
     }
 
     static ErrorCode errorCodeFromStatus(int status) {

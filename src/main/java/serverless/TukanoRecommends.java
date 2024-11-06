@@ -1,4 +1,7 @@
 package serverless;
+/**
+ * Function to upload the top 5 shorts to Tukano Recommends user
+ */
 
 import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
@@ -13,21 +16,23 @@ import utils.cache.RedisCache;
 import utils.database.DB;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
 public class TukanoRecommends {
 
     private static final Gson gson = new Gson();
+    private static final String HTTP_TRIGGER_NAME="reqShort";
+    private static final String HTTP_FUNCTION_NAME="tukanoRecommends";
+    private static final String HTTP_TRIGGER_ROUTE="rest/short/tukanoRecommends";
 
-    @FunctionName("tukanoRecommends")
+    @FunctionName(HTTP_FUNCTION_NAME)
     public HttpResponseMessage run(
             @HttpTrigger(
-                    name = "reqShort",
-                    methods = {HttpMethod.GET, HttpMethod.POST},
+                    name = HTTP_TRIGGER_NAME,
+                    methods = {HttpMethod.GET},
                     authLevel = AuthorizationLevel.ANONYMOUS,
-                    route = "/rest/short/tukanoRecommends")
+                    route = HTTP_TRIGGER_ROUTE)
             HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
 
@@ -49,7 +54,6 @@ public class TukanoRecommends {
             List<String> toDelete = new ArrayList<>();
             try {
                 toDelete = result.value();
-
                 context.getLogger().info("Result: " + result.value());
             } catch (Exception e) {
                 context.getLogger().severe("Failed to cast result to List<Short>: " + e.getMessage());

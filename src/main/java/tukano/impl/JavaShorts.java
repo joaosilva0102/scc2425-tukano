@@ -71,9 +71,6 @@ public class JavaShorts implements Shorts {
                 Log.warning("Error inserting short into cache");
         }
 
-        //var query = format("SELECT * FROM likes l WHERE l.shortId = '%s'", shortId);
-        //int likes = DB.sql(query, Likes.class).size();
-
         return errorOrValue(shrtRes, shrt -> shrt.copyWithLikes_And_Token(shrt.getTotalLikes()));
     }
 
@@ -120,8 +117,6 @@ public class JavaShorts implements Shorts {
             });
         }));
     }
-
-
 
     @Override
     public Result<List<String>> getShorts(String userId) {
@@ -298,13 +293,14 @@ public class JavaShorts implements Shorts {
         if (!Token.isValid(token, userId))
             return error(FORBIDDEN);
 
-        // delete shorts
+        // delete user shorts from db and cache
         List<Short> shortsToDelete = Cache.getList(format(USER_SHORTS_FMT, userId), Short.class).value();
         if(!Cache.isCached(format(USER_SHORTS_FMT, userId))) {
             var query1 = format("SELECT * FROM shorts s WHERE s.ownerId = '%s'", userId);
             shortsToDelete = DB.sql(query1, Short.class);
         }
 
+        // get user shorts republished by tukano recommends
         List<Short> tukanoShorts = Cache.getList(format(USER_SHORTS_FMT, "Tukano"), Short.class).value();
         if (!Cache.isCached(format(USER_SHORTS_FMT, "Tukano"))) {
             var query2 = "SELECT * FROM shorts s WHERE s.ownerId = 'Tukano'";
@@ -316,11 +312,13 @@ public class JavaShorts implements Shorts {
             DB.deleteOne(s);
         });
 
+        // delete tukano recommends republished shorts
         tukanoShorts.forEach(s -> {
             removeCachedShort(s);
             DB.deleteOne(s);
         });
 
+        // removes from cache list of user shorts
         Cache.removeFromCache(format(USER_SHORTS_FMT, userId));
 
         // delete follows
@@ -337,6 +335,12 @@ public class JavaShorts implements Shorts {
         return ok();
     }
 
+    /**
+     * Inserts into cache a short
+     * @param shrt short object to insert into cache
+     * @param password of the owner of the short
+     * @return the result of the operation
+     */
     private Result<Void> insertShortToCache(Short shrt, String password) {
         try {
             Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
@@ -353,6 +357,11 @@ public class JavaShorts implements Shorts {
         }
     }
 
+    /**
+     * Removes from cache all occurrences of a short
+     * @param shrt short object to remove from cache
+     * @return the result of the operation
+     */
     private Result<Void> removeCachedShort(Short shrt) {
         try {
             if(!Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId())).isOK() ||
@@ -372,22 +381,31 @@ public class JavaShorts implements Shorts {
         }
     }
 
+    /**
+     * Method to update Tukano Recommends shorts
+     * @return the result of the operation
+     */
     private Result<List<Short>> tukanoRecommends() {
-        Result<Object> res = callFunctionTukanoRecommends();
-        if(!res.isOK()) return error(res.error());
+        Result<Object> res = callTukanoRecommends();
+        if (!res.isOK())
+            return error(res.error());
         String reshorts = (String) res.value();//returns JSON
-        if(reshorts == null) {
+        if (reshorts == null) {
             Log.severe("Error calling tukanoRecommends");
             return error(INTERNAL_ERROR);
         }
         Log.info(() -> "Type of res.value(): " + (res.value() != null ? res.value().getClass().getName() : "null"));
-        List<Short> shorts = gson.fromJson(reshorts, new TypeToken<List<Short>>(){}.getType());
+        List<Short> shorts = gson.fromJson(reshorts, new TypeToken<List<Short>>() {}.getType());
+        return ok(shorts);
+    }
 
-    private Result<Object> tukanoRecommends() {
+    /**
+     * Calls the Serverless Azure function TukanoRecommends using a HTTP request
+     * @return the result of the operation
+     */
+    private Result<Object> callTukanoRecommends() {
         String url = System.getProperty("TUKANO_RECOMMENDS_URL");
-        //StringBuilder response = new StringBuilder();
 
-        HttpResponse<String> response = null;
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
@@ -404,7 +422,5 @@ public class JavaShorts implements Shorts {
             Log.severe("Error while calling HTTP trigger function: " + e.getMessage());
             return error(INTERNAL_ERROR);
         }
-
     }
-
 }
