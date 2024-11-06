@@ -13,6 +13,7 @@ import utils.cache.RedisCache;
 import utils.database.DB;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -74,10 +75,24 @@ public class TukanoRecommends {
                 }
             }
 
-            List<Short> recShorts = shorts.stream()
+            /*List<Short> recShorts = shorts.stream()
                     .sorted(Comparator.comparingInt(Short::getTotalViews).reversed()
                             .thenComparingInt(Short::getTotalLikes).reversed()
                             .thenComparingLong(Short::getTimestamp).reversed())
+                    .limit(5)
+                    .toList());*/
+            List<Short> recShorts = shorts.stream()
+                    .sorted((s1, s2) -> {
+                        int viewDiff = Integer.compare(s2.getTotalViews(), s1.getTotalViews());
+                        if (viewDiff != 0) {
+                            return viewDiff;
+                        }
+                        int likeDiff = Integer.compare(s2.getTotalLikes(), s1.getTotalLikes());
+                        if (likeDiff != 0) {
+                            return likeDiff;
+                        }
+                        return Long.compare(s2.getTimestamp(), s1.getTimestamp());
+                    })
                     .limit(5)
                     .toList();
 

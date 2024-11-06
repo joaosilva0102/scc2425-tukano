@@ -140,6 +140,7 @@ public class Test_JB {
 		show(s14 = shorts.createShort("pg4", "123456"));
 		show(s15 = shorts.createShort("pg4", "123456"));
 		show(shorts.like(s6.value().getShortId(), "pg", true, "123456"));
+		show(shorts.like(s6.value().getShortId(), "pg2", true, "123456"));
 		show(shorts.like(s7.value().getShortId(), "pg", true, "123456"));
 		show(shorts.like(s8.value().getShortId(), "pg", true, "123456"));
 		show(shorts.like(s9.value().getShortId(), "pg", true, "123456"));
