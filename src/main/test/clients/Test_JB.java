@@ -37,7 +37,7 @@ public class Test_JB {
 		*
 		 */
 
-		/*System.out.println("***************TEST USERS************************");
+		System.out.println("***************TEST USERS************************");
 
 			show(users.getUser("Tukano", "12345"));
 		 show(users.createUser( new User("wales", "12345", "jimmy@wikipedia.pt", "Jimmy Wales") ));
@@ -51,10 +51,10 @@ public class Test_JB {
 		 show(users.deleteUser("wales", "12345"));
 		 show(users.deleteUser("liskov", "54321"));//TODO:delete dá null
 
-		*//*
+		/*
 		* TEST SHORTS
 		*
-		 *//*
+		 */
 		System.out.println("***************TEST SHORTS 1 ************************");
 		Result<Short> s1, s3;
 		show(users.createUser( new User("wales1", "12345", "jimmyafs@wikipedia.pt", "Jimmy Wsales") ));
@@ -120,7 +120,7 @@ public class Test_JB {
 
 		System.out.println("* Deletes *");
 		show(users.deleteUser("wales3", "123456"));//Check if all shorts are deleted
-		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted*/
+		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted
 
 		System.out.println("***************TEST TUKANORECOMMENDS************************");
 		show(users.createUser( new User("pg", "123456", "jimmaydn@wikipedia.pt", "Jimmy asfWalesn") ));
