@@ -374,6 +374,7 @@ public class JavaShorts implements Shorts {
      */
     private Result<Void> removeCachedShort(Short shrt) {
         try {
+            Log.info(() -> format("Removing short %s from cache and owner %s\n", shrt.getShortId(), shrt.getOwnerId()));
             if(!Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId())).isOK() ||
                     !Cache.removeFromList(format(USER_SHORTS_FMT, shrt.getOwnerId()), shrt).isOK() ||
                     !Cache.removeFromList(format(FEED_FMT, shrt.getOwnerId()), shrt).isOK())
