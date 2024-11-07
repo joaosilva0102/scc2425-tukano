@@ -299,24 +299,35 @@ public class JavaShorts implements Shorts {
             shortsToDelete = DB.sql(query1, Short.class);
         }
 
-        /*// get user shorts republished by tukano recommends
+        // get user shorts republished by tukano recommends
         List<Short> tukanoShorts = Cache.getList(format(USER_SHORTS_FMT, "Tukano"), Short.class).value();
         if (!Cache.isCached(format(USER_SHORTS_FMT, "Tukano"))) {
             var query2 = "SELECT * FROM shorts s WHERE s.ownerId = 'Tukano'";
             tukanoShorts = DB.sql(query2, Short.class);
-        }*/
+        }
 
+        // Perform deletion of generic shorts first
         shortsToDelete.forEach(s -> {
             removeCachedShort(s);
             DB.deleteOne(s);
         });
 
-        /*// delete tukano recommends republished shorts
+        List<Short> shortsToRemove = new ArrayList<>();
+
+        String specificPattern = "^tukano\\+" + userId + "\\+.*$";
+
         tukanoShorts.forEach(s -> {
-            //removeCachedShort(s);
+            if (s.getShortId().matches(specificPattern)) {
+                Log.info(() -> format("Marking tukano for user %s recommends short: %s for deletion\n", userId, s.getShortId()));
+                shortsToRemove.add(s);
+            }
+        });
+
+        shortsToRemove.forEach(s -> {
+            removeCachedShort(s);
             DB.deleteOne(s);
         });
-*/
+
         // removes from cache list of user shorts
         Cache.removeFromCache(format(USER_SHORTS_FMT, userId));
 
