@@ -71,9 +71,10 @@ public class TukanoRecommends {
                 String value = jedis.get(key);
                 try {
                     Short s = gson.fromJson(value, Short.class);
-                    String newShortId = s.getShortId().replaceAll("^[^+]+", "tukano");
+                    String newShortId = "tukano+"+s.getShortId();
                     context.getLogger().info("Short: " + newShortId);
                     shorts.add(new Short(newShortId, user.getUserId(), s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
+//                    shorts.add(new Short(newShortId, newUserId, s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
                 } catch (Exception e) {
                     context.getLogger().severe("Error parsing data for key: " + key);
                 }

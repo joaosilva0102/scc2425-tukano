@@ -73,7 +73,7 @@ public class Test_JB {
 		var shortId = s3.value().getShortId();
 		System.out.println( "------->" + shortId );
 		show(shorts.deleteShort(s3.value().getShortId(), "54321")); //FOrbidden
-		show(shorts.deleteShort(s3.value().getShortId(), "12345"));
+		show(shorts.deleteShort(s3.value().getShortId(), "12345"));//NOt found
 
 		show(users.deleteUser("wales1", "12345"));//Check if all shorts are deleted
 
@@ -120,7 +120,7 @@ public class Test_JB {
 
 		System.out.println("* Deletes *");
 		show(users.deleteUser("wales3", "123456"));//Check if all shorts are deleted
-		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted
+		show(users.deleteUser("jb3", "54321"));//Check if all shorts are deleted*/
 
 		System.out.println("***************TEST TUKANORECOMMENDS************************");
 		show(users.createUser( new User("pg", "123456", "jimmaydn@wikipedia.pt", "Jimmy asfWalesn") ));
