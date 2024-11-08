@@ -91,7 +91,7 @@ public class JavaShorts implements Shorts {
             likesToDelete.forEach(DB::deleteOne);
 
             var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            if (!blobsDeleted.isOK()) return blobsDeleted;
+            if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
 
             DB.deleteOne(shrt);
 
@@ -173,31 +173,29 @@ public class JavaShorts implements Shorts {
         return errorOrResult(getShort(shortId), shrt -> {
             var l = new Likes(userId, shortId, shrt.getOwnerId());
 
-            return errorOrVoid(okUser(userId, password), isLiked ? changeLikes(shrt,true,l) : changeLikes(shrt,false,l));
+            return errorOrVoid(okUser(userId, password), usr -> changeLikes(shrt,isLiked,l));
         });
     }
 
     private Result<Likes> changeLikes(Short shrt, boolean isLiked, Likes l) {
+        Result<Likes> res;
         if(isLiked){
+            res = DB.insertOne(l);
+            if(!res.isOK()) return res;
             shrt.setTotalLikes(shrt.getTotalLikes() + 1);
-            DB.updateOne(shrt);
-            var shrtCache = Cache.isCached(format(SHORT_FMT, shrt.getShortId()));
-            if(shrtCache) {
-                Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId()));
-                Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
-            }
-            return DB.insertOne(l);
         }
         else{
+            if(!DB.getOne(l.getId(), Likes.class).isOK())
+                return Result.error(NOT_FOUND);
+            res = DB.deleteOne(l);
             shrt.setTotalLikes(shrt.getTotalLikes() - 1);
-            DB.updateOne(shrt);
-            var shrtCache = Cache.isCached(format(SHORT_FMT, shrt.getShortId()));
-            if(shrtCache) {
-                Cache.removeFromCache(format(SHORT_FMT, shrt.getShortId()));
-                Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
-            }
-            return DB.deleteOne(l);
         }
+        shrt.setBlobUrl(shrt.getBlobUrl().split("\\?token=")[0]);
+        DB.updateOne(shrt);
+        Cache.insertIntoCache(format(SHORT_FMT, shrt.getShortId()), shrt);
+
+        return res;
+
     }
 
     @Override

@@ -34,7 +34,7 @@ public class TukanoRestServer extends Application {
 		serverURI = String.format(SERVER_BASE_URI, IP.hostAddress(), PORT);
 		Props.load("azurekeys-region.props");
 		//Props.load("azurekeys-northeurope.props");
-		User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
+		User user = new User("Tukano", "12345", "tukano@tukano.com", "Tukano Recommends");
 		if(!JavaUsers.getInstance().getUser(user.getUserId(),user.getPwd()).isOK())
 			JavaUsers.getInstance().createUser(user);
 	}

@@ -40,19 +40,19 @@ public class JavaUsers implements Users {
 		if (badUserInfo(user))
 			return error(BAD_REQUEST);
 
-		if (Cache.isCached(String.format(USER_FMT, user.getUserId())))
+		String userCache = String.format(USER_FMT, user.getUserId());
+		if (Cache.isCached(userCache))
 			return error(CONFLICT);
 
 		Result<User> r = DB.insertOne(user);
 
 		if(!Cache.insertIntoCache(String.format(USER_FMT, user.getUserId()), user).isOK() ||
 				!Cache.appendList(USERS_LIST, user).isOK())
-			Log.warning("Error inserting user into cache");
+			Log.warning("Error while inserting user into cache");
 
 		if(!user.getUserId().equals("Tukano")) {
-			Log.info("Following Tukano:  " + user.getUserId());
-			var result = JavaShorts.getInstance().follow(user.getUserId(), "Tukano", true, user.getPwd());
-			Log.info("Result: " + result);
+			var result = JavaShorts.getInstance().follow(user.getUserId(), "Tukano",
+					true, user.getPwd());
 		}
 
 		return errorOrValue(r, user.getUserId());
@@ -106,18 +106,7 @@ public class JavaUsers implements Users {
 		if (!user.isOK())
 				user = DB.getOne(userId, User.class);
 
-		return errorOrResult(validatedUserOrError(user, pwd), usr -> {
-			Cache.removeFromCache(String.format(USER_FMT, userId));
-			Cache.removeFromList(USERS_LIST, usr);
-
-			// Delete user shorts and related info asynchronously in a separate thread
-			Executors.defaultThreadFactory().newThread(() -> {
-				JavaShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
-				JavaBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
-			}).start();
-
-			return DB.deleteOne(usr);
-		});
+		return errorOrResult(validatedUserOrError(user, pwd), this::removeUserFromSystem);
 	}
 
 	@Override
@@ -126,11 +115,11 @@ public class JavaUsers implements Users {
 
 		// Access cache
 		Result<List<User>> cacheHits = Cache.getList(USERS_LIST, User.class);
-		if(Cache.isListCached(USERS_LIST)) {
-			List<User> l = cacheHits.value().stream().filter(u -> u.getUserId().contains(pattern))
+		if(Cache.isListCached(USERS_LIST) && !cacheHits.value().isEmpty()) {
+			List<User> cachedUserList = cacheHits.value().stream().filter(u -> u.getUserId().contains(pattern))
 					.map(User::copyWithoutPassword)
 					.toList();
-			return ok(l);
+			return ok(cachedUserList);
 		}
 
 		// If not in cache, access DB
@@ -157,5 +146,19 @@ public class JavaUsers implements Users {
 
 	private boolean badUpdateUserInfo(String userId, String pwd, User info) {
 		return (userId == null || pwd == null || info.getUserId() != null && !userId.equals(info.getUserId()));
+	}
+
+	private Result<User> removeUserFromSystem(User user) {
+		String userId = user.getUserId();
+		Cache.removeFromCache(String.format(USER_FMT, userId));
+		Cache.removeFromList(USERS_LIST, user);
+
+		// Delete user shorts and related info asynchronously in a separate thread
+		Executors.defaultThreadFactory().newThread(() -> {
+			JavaShorts.getInstance().deleteAllShorts(userId, user.getPwd(), Token.get(userId));
+			JavaBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
+		}).start();
+
+		return DB.deleteOne(user);
 	}
 }

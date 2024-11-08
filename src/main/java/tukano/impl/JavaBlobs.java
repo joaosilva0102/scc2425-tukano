@@ -61,7 +61,8 @@ public class JavaBlobs implements Blobs {
 			return error(FORBIDDEN);
 
 		Result<Void> incRes = incrementShortViews(blobId);
-		if(!incRes.isOK()) return Result.error(incRes.error());
+		if(!incRes.isOK())
+			return Result.error(incRes.error());
 //		return storage.read( toPath( blobId ) );
 		return cloudStorage.read( toPath( blobId ) );
 	}
