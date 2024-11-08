@@ -24,35 +24,32 @@ config:
 scenarios:
   - name: 'User Tests'
     flow:
-      - post:
+      - post: # Create User
           url: /users/
           headers:
             Content-Type: application/json
             Accept: application/json
           beforeRequest: "uploadRandomizedUser"
           afterResponse: "processRegisterReply"
-      - get:
+      - get: # Get User
           url: "/users/{{ username }}?pwd={{ password }}"
           headers:
             Content-Type: application/json
             Accept: application/json
           beforeRequest: "getRandomUser"
-      - put:
+      - put: # Update User
           url: "/users/{{ username }}?pwd={{ password }}"
           headers:
             Content-Type: application/json
             Accept: application/json
           beforeRequest: "updateRandomUser"
           afterRequest: "processUpdateUser"
-      - get:
+      - get: # Search Users
           url: "/users?query={{ pattern }}"
           headers:
             Content-Type: application/json
             Accept: application/json
           beforeRequest: "randomPattern"
-
-  - name: "Short Tests"
-    flow:
       - post: # Create Short
           url: "/shorts/{{ username }}?pwd={{ password }}"
           headers:

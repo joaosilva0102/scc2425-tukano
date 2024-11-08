@@ -110,8 +110,8 @@ function getRandomUser(requestParams, context, ee, next) {
     let users = Object.keys(registeredUsers)
     const rand = randomNumber(0, users.length)
     const user = registeredUsers[users[rand]]
-    let username = user.userId
-    let password = user.pwd
+    let username = user?.userId
+    let password = user?.pwd
 
     context.vars.username = username;
     context.vars.password = password;
@@ -123,8 +123,8 @@ function updateRandomUser(requestParams, context, ee, next) {
     let users = Object.keys(registeredUsers)
     const rand = randomNumber(0, users.length)
     const oldUser = registeredUsers[users[rand]]
-    const username = oldUser.userId
-    const password = oldUser.pwd
+    const username = oldUser?.userId
+    const password = oldUser?.pwd
     const newPassword = password
     const newEmail = username + "_upd@campus.fct.unl.pt";
     const newDisplayName = username + "_upd"
@@ -146,15 +146,15 @@ function getRandomShort(requestParams, context, ee, next) {
     let shorts = Object.keys(registeredShorts)
     let rand = randomNumber(0, shorts.length)
     const short = registeredShorts[shorts[rand]]
-    context.vars.shortId = short.shortId
+    context.vars.shortId = short?.shortId
 
     return next();
 }
 
 function getShortOwner(requestParams, context, ee, next) {
     const shortId = context.vars.shortId
-    let username = registeredShorts[shortId].ownerId
-    let password = registeredUsers[username].password
+    let username = registeredShorts[shortId]?.ownerId
+    let password = registeredUsers[username]?.password
 
     context.vars.username = username
     context.vars.password = password
@@ -165,14 +165,12 @@ function getRandomShortAndUser(requestParams, context, ee, next) {
     getRandomShort(requestParams, context, ee, () => {
         getRandomUser(requestParams, context, ee, next)
     })
-    return next()
 }
 
 function getRandomShortAndOwner(requestParams, context, ee, next) {
     getRandomShort(requestParams, context, ee, () => {
         getShortOwner(requestParams, context, ee, next)
     })
-    return next()
 }
 
 function processUpdateUser(requestParams, response, context, ee, next) {
@@ -204,7 +202,6 @@ function processDeleteShort(requestParams, response, context, ee, next) {
  */
 function processRegisterReply(requestParams, response, context, ee, next) {
     if( typeof response.body !== 'undefined' && response.body.length > 0) {
-        console.log(response.body)
         registeredUsers[response.body] = context.vars.user;
     }
     return next();
