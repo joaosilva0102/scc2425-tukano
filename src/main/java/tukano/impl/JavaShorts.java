@@ -7,7 +7,6 @@ import tukano.api.*;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
-import utils.GSON;
 import utils.cache.Cache;
 import utils.database.DB;
 
@@ -107,9 +106,6 @@ public class JavaShorts implements Shorts {
                 var newQuery = format("SELECT * FROM likes l WHERE l.shortId = '%s'", tukanoShrtId);
                 List<Likes> newLikesToDelete = DB.sql(newQuery, Likes.class);
                 newLikesToDelete.forEach(DB::deleteOne);
-
-                var newBlobsDeleted = JavaBlobs.getInstance().delete(newShrt.getShortId(), Token.get(newShrt.getShortId()));
-                if (!newBlobsDeleted.isOK()) return newBlobsDeleted;
 
                 DB.deleteOne(newShrt);
                 return ok();

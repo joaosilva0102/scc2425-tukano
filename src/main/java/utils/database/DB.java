@@ -5,7 +5,7 @@ import tukano.api.Result;
 
 public class DB {
 
-	private static final boolean nosql = false;
+	private static final boolean nosql = true;
 
 	public static <T> List<T> sql(String query, Class<T> clazz) {
 		return nosql ? CosmosDB.getInstance().query(clazz, query) :
