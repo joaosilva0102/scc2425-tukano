@@ -7,13 +7,16 @@ import tukano.api.User;
 import tukano.api.Users;
 import tukano.api.rest.RestUsers;
 import tukano.impl.JavaUsers;
+import tukano.impl.JavaUsersNoCache;
 
 @Singleton
 public class RestUsersResource extends RestResource implements RestUsers {
 
+	private static boolean cache = true;
+
 	final Users impl;
 	public RestUsersResource() {
-		this.impl = JavaUsers.getInstance();
+		this.impl = cache? JavaUsers.getInstance() : JavaUsersNoCache.getInstance();
 	}
 	
 	@Override

@@ -25,6 +25,8 @@ public class IncrementShortViews {
     private static final String HTTP_FUNCTION_NAME="IncrementShortViews";
     private static final String HTTP_TRIGGER_ROUTE="short/incrementViews/{" + SHORTID + "}";
 
+    private static final boolean cache = true;
+
     @FunctionName(HTTP_FUNCTION_NAME)
     public HttpResponseMessage run(
             @HttpTrigger(
@@ -48,8 +50,11 @@ public class IncrementShortViews {
         shrt.incrementViews();
         DB.updateOne(shrt);
 
-        String key = String.format("short:%s", shortId);
-        if(Cache.isCached(key))
-            Cache.insertIntoCache(key, shrt);
+        if(cache) {
+            String key = String.format("short:%s", shortId);
+            if(Cache.isCached(key))
+                Cache.insertIntoCache(key, shrt);
+        }
+
     }
 }

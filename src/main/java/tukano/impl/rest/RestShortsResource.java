@@ -7,11 +7,14 @@ import tukano.api.Short;
 import tukano.api.Shorts;
 import tukano.api.rest.RestShorts;
 import tukano.impl.JavaShorts;
+import tukano.impl.JavaShortsNoCache;
 
 @Singleton
 public class RestShortsResource extends RestResource implements RestShorts {
 
-	static final Shorts impl = JavaShorts.getInstance();
+	private static boolean cache = true;
+
+	static final Shorts impl = cache? JavaShorts.getInstance() : JavaShortsNoCache.getInstance();
 		
 	@Override
 	public Short createShort(String userId, String password) {
