@@ -22,6 +22,14 @@ In the pom.xml, fill the properties block with the functionAppName, functionRegi
 
 Finally, rename the azure-region-template.props to azurekeys-region.props (remove the '-template')
 
+## Switching between implementations
+To test with or without cache, change the booleans in the following classes:
+- tukano/impl/rest/RestShortsResource.java
+- tukano/impl/rest/RestUsersResource.java
+- serverless/IncrementShortViews.java
+
+To test with PostgreSQL or NoSQL, change the boolean in utils/database/DB.java
+
 ## Deploying the app
 To deploy the Azure Functions, run:  (don't forget to set up the function url's)
 ```
