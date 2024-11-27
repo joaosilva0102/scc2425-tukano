@@ -1,0 +1,99 @@
+# App
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tukano-service
+  labels:
+    app: tukano-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tukano-service
+  template:
+    metadata:
+      name: tukano-service
+      labels:
+        app: tukano-service
+    spec:
+      nodeSelector:
+        "kubernetes.io/os": linux
+      containers:
+        - name: tukano-service
+          image: joaosilva0102/tukano
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BlobStoreConnection
+              value: "DefaultEndpointsProtocol=https;AccountName=sto70373northeurope;AccountKey=6HYGLJgEQVm6ng1DPcI2vf2hbWpyZKqO3TE5YM94EXGBabueA7lh4wx/XaH1ACoNtP2L+kB8G0a3+AStY67cTw==;EndpointSuffix=core.windows.net"
+            - name: COSMOSDB_KEY
+              value: "8kxZFShs4rgWLalJPOmOa29q1JbkOptCEsmqP0sYPkOuocy4UTcdpZF9svroOmpNWQmVL1f0cmweACDbSVvNyQ=="
+            - name: COSMOSDB_URL
+              value: "https://cosmos70373.documents.azure.com:443/"
+            - name: COSMOSDB_DATABASE
+              value: "cosmosdb70373"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tukano-service
+spec:
+  selector:
+    app: tukano-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+
+---
+
+# Redis
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-service
+  labels:
+    app: redis-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-service
+  template:
+    metadata:
+      name: redis-service
+      labels:
+        app: redis-service
+    spec:
+      nodeSelector:
+        "kubernetes.io/os": linux
+      containers:
+        - name: redis-service
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+spec:
+  selector:
+    app: redis-service
+  ports:
+    - name: http
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP
+
+
