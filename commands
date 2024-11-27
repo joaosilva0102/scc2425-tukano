@@ -1,0 +1,21 @@
+mvn clean install
+
+docker build -t joaosilva0102/tukano .
+
+docker push joaosilva0102/tukano
+
+kubectl apply -f tukano-service.yaml
+
+kubectl get pods
+
+kubectl logs -f tukano-service
+
+minikube service tukano-service
+
+kubectl get services
+
+kubectl delete deployments,services,pods --all
+kubectl delete pvc --all
+
+
+

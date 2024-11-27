@@ -1,3 +1,18 @@
+# Persistent Volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
 # App
 apiVersion: apps/v1
 kind: Deployment
@@ -32,6 +47,13 @@ spec:
               value: "https://cosmos70373.documents.azure.com:443/"
             - name: COSMOSDB_DATABASE
               value: "cosmosdb70373"
+          volumeMounts:
+            - mountPath: "/mnt/vol"
+              name: mediavolume
+      volumes:
+        - name: mediavolume
+          persistentVolumeClaim:
+            claimName: local-storage
       restartPolicy: Always
 ---
 apiVersion: v1

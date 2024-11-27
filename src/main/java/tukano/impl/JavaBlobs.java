@@ -49,8 +49,8 @@ public class JavaBlobs implements Blobs {
 		if (!validBlobId(blobId, token))
 			return error(FORBIDDEN);
 
-//		return storage.write( toPath( blobId ), bytes);
-		return cloudStorage.write( toPath( blobId ), bytes);
+		return storage.write( toPath( blobId ), bytes);
+//		return cloudStorage.write( toPath( blobId ), bytes);
 	}
 
 	@Override
@@ -60,11 +60,11 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-		Result<Void> incRes = incrementShortViews(blobId);
+/*		Result<Void> incRes = incrementShortViews(blobId);
 		if(!incRes.isOK())
 			return Result.error(incRes.error());
-//		return storage.read( toPath( blobId ) );
-		return cloudStorage.read( toPath( blobId ) );
+*/		return storage.read( toPath( blobId ) );
+//		return cloudStorage.read( toPath( blobId ) );
 	}
 	
 	public Result<Void> downloadToSink(String blobId, Consumer<byte[]> sink, String token) {
@@ -73,8 +73,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-//		return storage.read( toPath(blobId), sink);
-		return cloudStorage.read( toPath(blobId), sink);
+		return storage.read( toPath(blobId), sink);
+//		return cloudStorage.read( toPath(blobId), sink);
 	}
 
 	@Override
@@ -84,8 +84,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
-//		return storage.delete( toPath(blobId));
-		return cloudStorage.delete( toPath(blobId));
+		return storage.delete( toPath(blobId));
+//		return cloudStorage.delete( toPath(blobId));
 	}
 
 	@Override
@@ -95,7 +95,8 @@ public class JavaBlobs implements Blobs {
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
 
-		return cloudStorage.deleteAll(userId);
+		return storage.delete( toPath(userId));
+//		return cloudStorage.deleteAll(userId);
 	}
 
 	private boolean validBlobId(String blobId, String token) {
