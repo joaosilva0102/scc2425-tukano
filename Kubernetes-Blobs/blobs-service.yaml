@@ -1,0 +1,13 @@
+# Blobs Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: blob-service
+spec:
+  selector:
+    app: blob-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
