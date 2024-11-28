@@ -4,7 +4,17 @@ docker build -t joaosilva0102/tukano .
 
 docker push joaosilva0102/tukano
 
-kubectl apply -f tukano-service.yaml
+kubectl apply -f Kubernetes-Tukano/tukano-deployment.yaml
+kubectl apply -f Kubernetes-Tukano/tukano-service.yaml
+kubectl apply -f Kubernetes-Redis/redis-deployment.yaml
+kubectl apply -f Kubernetes-Redis/redis-service.yaml
+kubectl apply -f Kubernetes-Blobs/blobs-deployment.yaml
+kubectl apply -f Kubernetes-Blobs/blobs-service.yaml
+kubectl apply -f Kubernetes-Postgres/persistent-volume-postgres.yml
+kubectl apply -f Kubernetes-Postgres/persistent-volume-claim-postgres.yml
+kubectl apply -f Kubernetes-Postgres/postgres-secrets.yml
+kubectl apply -f Kubernetes-Postgres/postgres-deployment.yml
+kubectl apply -f Kubernetes-Postgres/postgres-service.yml
 
 kubectl get pods
 

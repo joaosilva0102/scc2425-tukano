@@ -1,0 +1,13 @@
+# Tukano App Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: tukano-service
+spec:
+  selector:
+    app: tukano-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
