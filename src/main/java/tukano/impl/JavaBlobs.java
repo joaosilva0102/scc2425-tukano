@@ -12,6 +12,7 @@ import java.net.http.HttpResponse;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
+import srv.Authentication;
 import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.impl.rest.TukanoRestServer;
@@ -24,11 +25,13 @@ import utils.Hex;
 public class JavaBlobs implements Blobs {
 
 	private static Blobs instance;
-	private static Logger Log = Logger.getLogger(JavaBlobs.class.getName());
+	private static final Logger Log = Logger.getLogger(JavaBlobs.class.getName());
 
 	public String baseURI;
-	private BlobStorage storage;
+	private final BlobStorage storage;
 	private CloudBlobStorage cloudStorage;
+
+	private static final String ADMIN = "admin";
 
 	synchronized public static Blobs getInstance() {
 		if( instance == null )
@@ -49,6 +52,10 @@ public class JavaBlobs implements Blobs {
 		if (!validBlobId(blobId, token))
 			return error(FORBIDDEN);
 
+		String username = blobId.split("\\+")[0];
+
+		Authentication.validateSession(username);
+
 		return storage.write( toPath( blobId ), bytes);
 //		return cloudStorage.write( toPath( blobId ), bytes);
 	}
@@ -59,6 +66,8 @@ public class JavaBlobs implements Blobs {
 
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
+
+		Authentication.validateSession();
 
 /*		Result<Void> incRes = incrementShortViews(blobId);
 		if(!incRes.isOK())
@@ -84,6 +93,8 @@ public class JavaBlobs implements Blobs {
 		if( ! validBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
+		Authentication.validateSession(ADMIN);
+
 		return storage.delete( toPath(blobId));
 //		return cloudStorage.delete( toPath(blobId));
 	}
@@ -94,6 +105,8 @@ public class JavaBlobs implements Blobs {
 
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
+
+		Authentication.validateSession(ADMIN);
 
 		return storage.delete( toPath(userId));
 //		return cloudStorage.deleteAll(userId);

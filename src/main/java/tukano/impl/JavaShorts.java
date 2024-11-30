@@ -89,8 +89,12 @@ public class JavaShorts implements Shorts {
             List<Likes> likesToDelete = DB.sql(query, Likes.class);
             likesToDelete.forEach(DB::deleteOne);
 
-            var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
-            if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
+            try {
+                var blobsDeleted = JavaBlobs.getInstance().delete(shrt.getShortId(), Token.get(shrt.getShortId()));
+                if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
+            } catch (Exception e) {
+                Log.warning(e.getMessage());
+            }
 
             DB.deleteOne(shrt);
 
