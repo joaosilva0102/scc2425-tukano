@@ -18,14 +18,16 @@ kubectl apply -f Kubernetes-Postgres/postgres-service.yml
 
 kubectl get pods
 
-kubectl logs -f tukano-service
-
 minikube service tukano-service
+
+kubectl logs -f tukano-service-<id>
 
 kubectl get services
 
 kubectl delete deployments,services,pods --all
+kubectl delete deployments,services,pods,pvc,pv --all
 kubectl delete pvc --all
+kubectl delete pv --all
 
 
 
