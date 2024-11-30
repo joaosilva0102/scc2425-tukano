@@ -38,7 +38,7 @@ public class JavaBlobs implements Blobs {
 
 	private JavaBlobs() {
 		storage = new FilesystemStorage();
-		cloudStorage = new CloudBlobStorage();
+//		cloudStorage = new CloudBlobStorage();
 		baseURI = String.format("%s/%s/", TukanoRestServer.serverURI, Blobs.NAME);
 	}
 
