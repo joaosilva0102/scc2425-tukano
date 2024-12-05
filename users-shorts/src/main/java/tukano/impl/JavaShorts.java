@@ -224,12 +224,7 @@ public class JavaShorts implements Shorts {
     public utils.Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-        utils.Result<List<Short>> res = tukanoRecommends();
-        if(!res.isOK()) {
-            Log.severe("Error while retrieving tukano recommends shorts");
-            return utils.Result.error(INTERNAL_ERROR);
-        }
-        List<Short> shorts = res.value();
+        List<Short> shorts = tukanoRecommends();
         Log.info(() -> format("Shorts size  : %d\n", shorts.size()));
 
         String cacheKey = format(FEED_FMT, userId);
@@ -476,11 +471,9 @@ public class JavaShorts implements Shorts {
         shrt.incrementViews();
         DB.updateOne(shrt);
 
-        if(cache) {
             String key = String.format("short:%s", shortId);
             if(Cache.isCached(key))
                 Cache.insertIntoCache(key, shrt);
-        }
 
     }
 }

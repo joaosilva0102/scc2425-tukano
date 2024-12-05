@@ -49,9 +49,10 @@ public class IncrementShortViews {
         Short shrt = DB.getOne(shortId, Short.class).value();
         shrt.incrementViews();
         DB.updateOne(shrt);
-
+        if(cache) {
             String key = String.format("short:%s", shortId);
-            if(Cache.isCached(key))
+            if (Cache.isCached(key))
                 Cache.insertIntoCache(key, shrt);
+        }
     }
 }
