@@ -7,6 +7,7 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.Result;
 import utils.Token;
+import utils.cache.Cache;
 import utils.database.DB;
 
 import java.io.IOException;
@@ -231,5 +232,11 @@ public class JavaShortsNoCache implements Shorts {
         if(response.statusCode() != 200)
             return error(BAD_REQUEST);
         return Result.ok();
+    }
+
+    private void incrementShortViews(String shortId) {
+        Short shrt = DB.getOne(shortId, Short.class).value();
+        shrt.incrementViews();
+        DB.updateOne(shrt);
     }
 }

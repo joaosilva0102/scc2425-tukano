@@ -2,14 +2,19 @@ package tukano.impl;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.microsoft.azure.functions.*;
+import com.microsoft.azure.functions.annotation.AuthorizationLevel;
+import com.microsoft.azure.functions.annotation.HttpTrigger;
 import tukano.api.*;
 import tukano.api.Short;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
+import utils.Props;
 import utils.Result;
 import utils.Token;
 import utils.cache.Cache;
+import utils.cache.RedisCache;
 import utils.database.DB;
 
 import java.io.IOException;
@@ -395,49 +400,6 @@ public class JavaShorts implements Shorts {
         }
     }
 
-    /**
-     * Method to update Tukano Recommends shorts
-     * @return the result of the operation
-     */
-    private utils.Result<List<Short>> tukanoRecommends() {
-        utils.Result<Object> res = callTukanoRecommends();
-        if (!res.isOK())
-            return error(res.error());
-        String reshorts = (String) res.value();//returns JSON
-        if (reshorts == null) {
-            Log.severe("Error calling tukanoRecommends");
-            return error(INTERNAL_ERROR);
-        }
-        Log.info(() -> "Type of res.value(): " + (res.value() != null ? res.value().getClass().getName() : "null"));
-        List<Short> shorts = gson.fromJson(reshorts, new TypeToken<List<Short>>() {}.getType());
-        return ok(shorts);
-    }
-
-    /**
-     * Calls the Serverless Azure function TukanoRecommends using an HTTP request
-     * @return the result of the operation
-     */
-    private Result<Object> callTukanoRecommends() {
-        String url = System.getProperty("TUKANO_RECOMMENDS_URL");
-
-        try {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200)
-                return error(INTERNAL_ERROR);
-
-            return ok(response.body());
-        } catch (Exception e) {
-            Log.severe("Error while calling HTTP trigger function: " + e.getMessage());
-            return error(INTERNAL_ERROR);
-        }
-    }
-
     private Result<Void> deleteShortBlob(String blobId) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
 
@@ -450,5 +412,75 @@ public class JavaShorts implements Shorts {
         if(response.statusCode() != 200)
             return error(BAD_REQUEST);
         return Result.ok();
+    }
+
+    private List<Short> tukanoRecommends(){
+        try (var jedis = RedisCache.getCachePool().getResource()) {
+            Set<String> shortKeys = jedis.keys("short:*");
+            String cacheKey = format("user:%s:shorts", "Tukano");
+            List<Short> tukanoshorts = Cache.getList(cacheKey, Short.class).value();
+            List<Short> shorts = new ArrayList<>();
+            User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
+            var result = JavaShorts.getInstance().getShorts(user.getUserId());
+            List<String> toDelete = new ArrayList<>();
+            try {
+                toDelete = result.value();
+            } catch (Exception e) {
+                Log.info("Failed to cast result to List<Short>: " + e.getMessage());
+            }
+            for (String s : toDelete){
+                JavaShorts.getInstance().deleteShort(s, user.getPwd());
+            }
+            for(Short ts : tukanoshorts){
+                Cache.removeFromCache(ts.getShortId());
+            }
+
+            for (String key : shortKeys) {
+                String value = jedis.get(key);
+                try {
+                    Short s = gson.fromJson(value, Short.class);
+                    String newShortId = "tukano+"+s.getShortId();
+                    shorts.add(new Short(newShortId, user.getUserId(), s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
+//                    shorts.add(new Short(newShortId, newUserId, s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
+                } catch (Exception e) {
+                }
+            }
+
+            List<Short> recShorts = shorts.stream()
+                    .sorted((s1, s2) -> {
+                        int viewDiff = Integer.compare(s2.getTotalViews(), s1.getTotalViews());
+                        if (viewDiff != 0) {
+                            return viewDiff;
+                        }
+                        int likeDiff = Integer.compare(s2.getTotalLikes(), s1.getTotalLikes());
+                        if (likeDiff != 0) {
+                            return likeDiff;
+                        }
+                        return Long.compare(s2.getTimestamp(), s1.getTimestamp());
+                    })
+                    .limit(5)
+                    .toList();
+
+            for (Short s : recShorts) {
+                DB.insertOne(s);
+                // context.getLogger().info("REC Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
+            }
+            return recShorts;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void incrementShortViews(String shortId) {
+        Short shrt = DB.getOne(shortId, Short.class).value();
+        shrt.incrementViews();
+        DB.updateOne(shrt);
+
+        if(cache) {
+            String key = String.format("short:%s", shortId);
+            if(Cache.isCached(key))
+                Cache.insertIntoCache(key, shrt);
+        }
+
     }
 }

@@ -38,7 +38,7 @@ public class IncrementShortViews {
             @BindingName(SHORTID) String shortId,
             final ExecutionContext context) {
 
-        Props.load("azurekeys-region.props");
+        //Props.load("azurekeys-region.props");
         incrementViews(shortId);
 
         context.getLogger().info("Updated short view count: " + shortId);
@@ -50,11 +50,8 @@ public class IncrementShortViews {
         shrt.incrementViews();
         DB.updateOne(shrt);
 
-        if(cache) {
             String key = String.format("short:%s", shortId);
             if(Cache.isCached(key))
                 Cache.insertIntoCache(key, shrt);
-        }
-
     }
 }
