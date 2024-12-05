@@ -12,7 +12,6 @@ import com.microsoft.azure.functions.annotation.AuthorizationLevel;
 import com.microsoft.azure.functions.annotation.BindingName;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
-import utils.Props;
 import utils.cache.Cache;
 import utils.database.DB;
 import tukano.api.Short;

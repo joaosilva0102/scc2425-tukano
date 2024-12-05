@@ -1,16 +1,11 @@
 package tukano.impl;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.microsoft.azure.functions.*;
-import com.microsoft.azure.functions.annotation.AuthorizationLevel;
-import com.microsoft.azure.functions.annotation.HttpTrigger;
 import tukano.api.*;
 import tukano.api.Short;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
-import utils.Props;
 import utils.Result;
 import utils.Token;
 import utils.cache.Cache;
@@ -471,9 +466,9 @@ public class JavaShorts implements Shorts {
         shrt.incrementViews();
         DB.updateOne(shrt);
 
-            String key = String.format("short:%s", shortId);
-            if(Cache.isCached(key))
-                Cache.insertIntoCache(key, shrt);
+        String key = String.format("short:%s", shortId);
+        if(Cache.isCached(key))
+            Cache.insertIntoCache(key, shrt);
 
     }
 }

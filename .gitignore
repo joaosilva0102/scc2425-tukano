@@ -3,6 +3,7 @@
 .vscode
 users-shorts/target/
 blobs/target/
+common/target/
 users-shorts/src/main/resources/azurekeys-region.props
 users-shorts/src/main/resources/application.properties
 .png

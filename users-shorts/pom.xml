@@ -22,6 +22,7 @@
         <functionResourceGroup>rg70373-northeurope</functionResourceGroup>
     </properties>
     <build>
+        <finalName>ROOT</finalName>
         <sourceDirectory>src/main/java</sourceDirectory>
         <resources>
             <resource>
@@ -138,7 +139,7 @@
                     <url>http://maven:s3cret@127.0.0.1:8080/manager/text</url>
                     <server>tomcat-docker</server>
                     <update>true</update>
-                    <path>/tukano</path>
+                    <path>/</path>
                     <username>maven</username>
                     <password>s3cret</password>
                 </configuration>
@@ -254,24 +255,9 @@
             <version>1.3.2</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.18.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.18.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.18.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-blob</artifactId>
-            <version>12.28.0</version>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>6.4.4.Final</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>

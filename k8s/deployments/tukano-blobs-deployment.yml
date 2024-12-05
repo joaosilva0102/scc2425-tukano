@@ -1,0 +1,34 @@
+# Blobs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tukano-blobs-service
+  namespace: tukano
+  labels:
+    app: tukano-blobs-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tukano-blobs-service
+  template:
+    metadata:
+      name: tukano-blobs-service
+      labels:
+        app: tukano-blobs-service
+    spec:
+      nodeSelector:
+        "kubernetes.io/os": linux
+      containers:
+        - name: tukano-blobs-service
+          image: joaosilva0102/tukano-blobs
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: "/mnt/vol"
+              name: mediavolume
+      volumes:
+        - name: mediavolume
+          persistentVolumeClaim:
+            claimName: persistent-volume-blobs
+      restartPolicy: Always

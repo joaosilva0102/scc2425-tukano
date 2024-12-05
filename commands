@@ -1,42 +1,40 @@
 mvn clean install
 
-kubectl apply -f Kubernetes-Redis/redis-deployment.yaml
-kubectl apply -f Kubernetes-Redis/redis-service.yaml
-kubectl apply -f Kubernetes-Postgres/persistent-volume-postgres.yml
-kubectl apply -f Kubernetes-Postgres/persistent-volume-claim-postgres.yml
-kubectl apply -f Kubernetes-Postgres/postgres-secrets.yml
-kubectl apply -f Kubernetes-Postgres/postgres-deployment.yml
-kubectl apply -f Kubernetes-Postgres/postgres-service.yml
+docker build -t joaosilva0102/tukano-users-shorts ./users-shorts
+docker build -t joaosilva0102/tukano-blobs ./blobs
 
-cd users-shorts
-docker build -t joaosilva0102/tukano-users-shorts .
 docker push joaosilva0102/tukano-users-shorts
-
-kubectl apply -f tukano-service.yaml
-
-cd ..
-
-cd blobs
-docker build -t joaosilva0102/tukano-blobs .
 docker push joaosilva0102/tukano-blobs
 
-kubectl apply -f persistent-volume.yaml
-kubectl apply -f blobs-service.yaml
+kubectl apply -f k8s/tukano-namespace.yml
+kubectl apply -f k8s/volumes/persistent-volume-postgres.yml
+kubectl apply -f k8s/volumes/persistent-volume-claim-postgres.yml
+kubectl apply -f k8s/volumes/persistent-volume-blobs.yml
+kubectl apply -f k8s/secrets/postgres-secrets.yml
+kubectl apply -f k8s/deployments/redis-deployment.yml
+kubectl apply -f k8s/deployments/postgres-deployment.yml
+kubectl apply -f k8s/deployments/tukano-blobs-deployment.yml
+kubectl apply -f k8s/deployments/tukano-users-shorts-deployment.yml
+kubectl apply -f k8s/services/tukano-blobs-service.yml
+kubectl apply -f k8s/services/tukano-users-shorts-service.yml
+kubectl apply -f k8s/services/redis-service.yml
+kubectl apply -f k8s/services/postgres-service.yml
+kubectl apply -f k8s/tukano-ingress.yml
 
-cd ..
+kubectl get pods --namespace tukano
 
-kubectl get pods
+minikube service tukano-users-shorts-service --namespace tukano
 
-minikube service tukano-service
+kubectl logs -f tukano-users-shorts-service-<id> --namespace tukano
 
-kubectl logs -f tukano-service-<id>
+kubectl get services --namespace tukano
 
-kubectl get services
+kubectl delete deployments,services,pods --all --namespace tukano
+kubectl delete pvc --all --namespace tukano
+kubectl delete pv --all --namespace tukano
+kubectl delete ingress tukano-ingress --namespace tukano
 
-kubectl delete deployments,services,pods --all
-kubectl delete deployments,services,pods,pvc,pv --all
-kubectl delete pvc --all
-kubectl delete pv --all
+kubectl delete deployments,services,pods,pvc,pv,secrets,ingress --all --namespace tukano
 
 
 

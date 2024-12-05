@@ -7,6 +7,7 @@ public class RedisCache {
 	private static final int REDIS_PORT = 6379;
 	private static final int REDIS_TIMEOUT = 1000;
 	private static final boolean Redis_USE_TLS = false;
+	private static final String REDIS_HOSTNAME = "redis-service";
 	
 	private static JedisPool instance;
 	
@@ -14,8 +15,6 @@ public class RedisCache {
 		if( instance != null)
 			return instance;
 
-		//var hostname = System.getProperty("REDIS_HOSTNAME");
-		var hostname = "redis-service";
 		var poolConfig = new JedisPoolConfig();
 		poolConfig.setMaxTotal(128);
 		poolConfig.setMaxIdle(128);
@@ -25,7 +24,7 @@ public class RedisCache {
 		poolConfig.setTestWhileIdle(true);
 		poolConfig.setNumTestsPerEvictionRun(3);
 		poolConfig.setBlockWhenExhausted(true);
-		instance = new JedisPool(poolConfig, hostname,
+		instance = new JedisPool(poolConfig, REDIS_HOSTNAME,
 				REDIS_PORT, REDIS_TIMEOUT, null, Redis_USE_TLS);
 		return instance;
 	}

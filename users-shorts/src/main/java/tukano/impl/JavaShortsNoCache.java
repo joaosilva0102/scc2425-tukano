@@ -7,7 +7,6 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.Result;
 import utils.Token;
-import utils.cache.Cache;
 import utils.database.DB;
 
 import java.io.IOException;
