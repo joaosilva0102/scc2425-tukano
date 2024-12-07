@@ -21,6 +21,13 @@ spec:
                   name: tukano-users-shorts-service
                   port:
                     number: 8080
+            - path: /rest/login
+              pathType: Prefix
+              backend:
+                service:
+                  name: tukano-users-shorts-service
+                  port:
+                    number: 8080
             - path: /rest/blobs
               pathType: Prefix
               backend:

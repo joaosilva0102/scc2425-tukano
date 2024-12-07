@@ -4,8 +4,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import auth.Authentication;
 import jakarta.ws.rs.core.Application;
 
+import serverless.IncrementShortViewsResource;
 import tukano.api.User;
 import tukano.impl.JavaUsers;
 import utils.IP;
@@ -30,8 +32,10 @@ public class TukanoRestServer extends Application {
 	public TukanoRestServer() {
 		resources.add(RestUsersResource.class);
 		resources.add(RestShortsResource.class);
+		resources.add(Authentication.class);
+		resources.add(IncrementShortViewsResource.class);
 		serverURI = String.format(SERVER_BASE_URI, IP.hostAddress(), PORT);
-		Props.load("azurekeys-region.props");
+		//Props.load("azurekeys-region.props");
 		//Props.load("azurekeys-northeurope.props");
 		User user = new User("Tukano", "12345", "tukano@tukano.com", "Tukano Recommends");
 		if(!JavaUsers.getInstance().getUser(user.getUserId(),user.getPwd()).isOK())

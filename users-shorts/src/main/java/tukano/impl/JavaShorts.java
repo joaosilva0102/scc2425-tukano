@@ -394,7 +394,7 @@ public class JavaShorts implements Shorts {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://tukano-blob-service:8080/rest/blobs/" + blobId + "?token=" + Token.get(blobId)))
+                .uri(URI.create("http://tukano-blobs-service:8080/rest/blobs/" + blobId + "?token=" + Token.get(blobId)))
                 .DELETE()
                 .build();
 
