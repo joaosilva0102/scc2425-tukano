@@ -1,10 +1,12 @@
 mvn clean install
 
-docker build -t joaosilva0102/tukano-users-shorts ./users-shorts
-docker build -t joaosilva0102/tukano-blobs ./blobs
+docker build -t jmpbernardo/tukano-users-shorts ./users-shorts
+docker build -t jmpbernardo/tukano-blobs ./blobs
 
-docker push joaosilva0102/tukano-users-shorts
-docker push joaosilva0102/tukano-blobs
+docker push jmpbernardo/tukano-users-shorts
+docker push jmpbernardo/tukano-blobs
+
+minikube start
 
 kubectl apply -f k8s/tukano-namespace.yml
 kubectl apply -f k8s/volumes/persistent-volume-postgres.yml
@@ -23,21 +25,9 @@ kubectl apply -f k8s/tukano-ingress.yml
 
 kubectl get pods --namespace tukano
 
-minikube service tukano-users-shorts-service --namespace tukano
+minikube tunnel
 
-kubectl logs -f tukano-users-shorts-service-<id> --namespace tukano
 
-kubectl exec -it <POD_NAME> -n tukano -- psql -U postgres
-kubectl logs -f <POD_NAME> -n tukano
-
-kubectl get services --namespace tukano
-
-kubectl delete deployments,services,pods --all --namespace tukano
-kubectl delete pvc --all --namespace tukano
-kubectl delete pv --all --namespace tukano
-kubectl delete ingress tukano-ingress --namespace tukano
-
-kubectl delete deployments,services,pods,pvc,pv,secrets,ingress --all --namespace tukano
 
 
 
