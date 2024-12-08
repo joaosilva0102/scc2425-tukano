@@ -223,20 +223,20 @@ public class JavaShorts implements Shorts {
     @Override
     public utils.Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
-        List<Short> shorts = new ArrayList<>();
+        List<Short> recommendedShorts = new ArrayList<>();
         try {
-            shorts = tukanoRecommends().value();
+            recommendedShorts = tukanoRecommends().value();
         } catch (Exception e) {
             Log.severe("Error retrieving tukano recommendationss");
         }
 
         String cacheKey = format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
-        /*for(Short s : shorts)
+        for(Short s : recommendedShorts)
             if(!cachedFeed.contains(s)) {
                 Cache.removeFromCache(cacheKey);
                 break;
-            }*/
+            }
 
         if(Cache.isListCached(cacheKey)) {
             List<Short> sortedFeed = new ArrayList<>(cachedFeed);
@@ -274,7 +274,8 @@ public class JavaShorts implements Shorts {
         if(!Cache.replaceList(format(FEED_FMT, userId), feed).isOK())
             Log.warning(format("Error updating %s feed into cache", userId));
 
-
+        //feed.addAll(recommendedShorts);
+        //feed.sort(Comparator.comparing(Short::getTimestamp).reversed());
         return errorOrValue(okUser(userId, password), feed.stream()
                 .map(Short -> Short.getShortId() + ", " + Short.getTimestamp()).collect(Collectors.toList()));
     }
