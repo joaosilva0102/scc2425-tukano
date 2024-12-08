@@ -4,7 +4,8 @@ package serverless;
  */
 
 import com.google.gson.Gson;
-import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import tukano.api.User;
 import tukano.api.Short;
@@ -21,11 +22,11 @@ import static java.lang.String.format;
 @Path("/shorts/recommendations")
 public class TukanoRecommendsResource {
 
-    public static final Gson gson = new Gson();
     private static final Logger Log = Logger.getLogger(TukanoRecommendsResource.class.getName());
 
     @GET
     @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
     public List<Short> tukanoRecommendations() {
         //Props.load("azurekeys-region.props");
 

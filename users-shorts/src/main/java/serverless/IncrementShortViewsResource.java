@@ -10,15 +10,19 @@ import tukano.api.Short;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 
-@Path("/shorts/view")
+import java.util.logging.Logger;
+
+@Path("views")
 public class IncrementShortViewsResource {
     private static final String SHORTID = "shortId";
 
     private static final boolean cache = true;
+    private static final Logger Log = Logger.getLogger(IncrementShortViewsResource.class.getName());
 
     @POST
     @Path("/{" + SHORTID + "}")
     public void incrementViews(@PathParam(SHORTID) String shortId) {
+        Log.info("Incrementing short views: " + shortId);
         Short shrt = DB.getOne(shortId, Short.class).value();
         shrt.incrementViews();
         DB.updateOne(shrt);
