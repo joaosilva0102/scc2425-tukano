@@ -1,9 +1,13 @@
 config:
-    target: http://127.0.0.1:8080/rest
+    target: http://127.0.0.1/rest
     phases:
         - name: simple_post
-          duration: 3
-          arrivalRate: 1
+          duration: 10
+          arrivalRate: 2
+    http:
+        timeout: 10000
+    plugins:
+        metrics-by-endpoint: { }
     payload:
         path: ./data/users.csv
         order: sequence # selects users sequentially, default is random
@@ -28,3 +32,15 @@ scenarios:
                 pwd: "{{ pwd }}"
                 email: "{{ email }}"
                 displayName: "{{ displayName }}"
+        - get:
+              url: "/users/{{ userId}}?pwd={{ pwd }}"
+        - put:
+              url: "/users/{{ userId }}?pwd={{ pwd }}"
+              headers:
+                  Content-Type: application/json
+                  Accepts: application/json
+              json:
+                  userId: "{{ userId }}"
+                  pwd: "{{ pwd }}"
+                  email: "{{ email }}"
+                  displayName: "{{ displayName }}1"
