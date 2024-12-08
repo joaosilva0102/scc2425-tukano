@@ -1,5 +1,7 @@
 package tukano.api;
 
+import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.core.NewCookie;
 import utils.Result;
 
 import java.util.List;
@@ -44,13 +46,14 @@ public interface Users {
 	 * Deletes the user identified by userId
 	 * @param userId - the userId of the user
 	 * @param pwd - password of the user
+	 * @param cookie - cookie of the user
 	 * @return OK and the deleted user object, if the name exists and pwd matches the
 	 *         existing password 
 	 *         FORBIDDEN if the password is incorrect 
 	 *         NOT_FOUND if no user exists with the provided name
 	 *         BAD_REQUEST otherwise
 	 */
-	utils.Result<User> deleteUser(String userId, String pwd);
+	utils.Result<User> deleteUser(String userId, String pwd, NewCookie cookie);
 	
 	/**
 	 * Returns the list of users for which the pattern is a substring of the userId, case-insensitive. 

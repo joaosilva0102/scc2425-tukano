@@ -1,6 +1,8 @@
 package tukano.impl;
 
 import com.google.gson.Gson;
+import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.core.NewCookie;
 import tukano.api.*;
 import tukano.api.Short;
 import tukano.impl.data.Following;
@@ -19,6 +21,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static auth.Authentication.COOKIE_KEY;
 import static java.lang.String.format;
 import static utils.Result.ErrorCode.*;
 import static utils.Result.*;
@@ -78,7 +81,7 @@ public class JavaShorts implements Shorts {
     }
 
     @Override
-    public utils.Result<Void> deleteShort(String shortId, String password) {
+    public utils.Result<Void> deleteShort(String shortId, String password, NewCookie cookie) {
         Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
         utils.Result<Short> s = Cache.getFromCache(format(SHORT_FMT, shortId), Short.class);
@@ -95,7 +98,7 @@ public class JavaShorts implements Shorts {
 
             Result<Void> blobsDeleted;
             try {
-                blobsDeleted = deleteShortBlob(shrt.getShortId());
+                blobsDeleted = deleteShortBlob(shrt.getShortId(), cookie);
                 if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -219,16 +222,16 @@ public class JavaShorts implements Shorts {
     public utils.Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-        List<Short> shorts = tukanoRecommends();
-        Log.info(() -> format("Shorts size  : %d\n", shorts.size()));
+//        List<Short> shorts = tukanoRecommends();
+//        Log.info(() -> format("Shorts size  : %d\n", shorts.size()));
 
         String cacheKey = format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
-        for(Short s : shorts)
+        /*for(Short s : shorts)
             if(!cachedFeed.contains(s)) {
                 Cache.removeFromCache(cacheKey);
                 break;
-            }
+            }*/
 
         if(Cache.isListCached(cacheKey)) {
             List<Short> sortedFeed = new ArrayList<>(cachedFeed);
@@ -390,11 +393,12 @@ public class JavaShorts implements Shorts {
         }
     }
 
-    private Result<Void> deleteShortBlob(String blobId) throws IOException, InterruptedException {
+    private Result<Void> deleteShortBlob(String blobId, NewCookie cookie) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://tukano-blobs-service:8080/rest/blobs/" + blobId + "?token=" + Token.get(blobId)))
+                .header("Cookie", COOKIE_KEY + "=" + cookie.getValue())
                 .DELETE()
                 .build();
 
@@ -404,71 +408,4 @@ public class JavaShorts implements Shorts {
         return Result.ok();
     }
 
-    private List<Short> tukanoRecommends(){
-        try (var jedis = RedisCache.getCachePool().getResource()) {
-            Set<String> shortKeys = jedis.keys("short:*");
-            String cacheKey = format("user:%s:shorts", "Tukano");
-            List<Short> tukanoshorts = Cache.getList(cacheKey, Short.class).value();
-            List<Short> shorts = new ArrayList<>();
-            User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
-            var result = JavaShorts.getInstance().getShorts(user.getUserId());
-            List<String> toDelete = new ArrayList<>();
-            try {
-                toDelete = result.value();
-            } catch (Exception e) {
-                Log.info("Failed to cast result to List<Short>: " + e.getMessage());
-            }
-            for (String s : toDelete){
-                JavaShorts.getInstance().deleteShort(s, user.getPwd());
-            }
-            for(Short ts : tukanoshorts){
-                Cache.removeFromCache(ts.getShortId());
-            }
-
-            for (String key : shortKeys) {
-                String value = jedis.get(key);
-                try {
-                    Short s = gson.fromJson(value, Short.class);
-                    String newShortId = "tukano+"+s.getShortId();
-                    shorts.add(new Short(newShortId, user.getUserId(), s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
-//                    shorts.add(new Short(newShortId, newUserId, s.getBlobUrl(), s.getTimestamp(), s.getTotalLikes(), s.getTotalViews()));
-                } catch (Exception e) {
-                }
-            }
-
-            List<Short> recShorts = shorts.stream()
-                    .sorted((s1, s2) -> {
-                        int viewDiff = Integer.compare(s2.getTotalViews(), s1.getTotalViews());
-                        if (viewDiff != 0) {
-                            return viewDiff;
-                        }
-                        int likeDiff = Integer.compare(s2.getTotalLikes(), s1.getTotalLikes());
-                        if (likeDiff != 0) {
-                            return likeDiff;
-                        }
-                        return Long.compare(s2.getTimestamp(), s1.getTimestamp());
-                    })
-                    .limit(5)
-                    .toList();
-
-            for (Short s : recShorts) {
-                DB.insertOne(s);
-                // context.getLogger().info("REC Short: " + s.getShortId() + " " + s.getBlobUrl() + " " + s.getTimestamp() + " " + s.getTotalLikes() + " " + s.getTotalViews());
-            }
-            return recShorts;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private void incrementShortViews(String shortId) {
-        Short shrt = DB.getOne(shortId, Short.class).value();
-        shrt.incrementViews();
-        DB.updateOne(shrt);
-
-        String key = String.format("short:%s", shortId);
-        if(Cache.isCached(key))
-            Cache.insertIntoCache(key, shrt);
-
-    }
 }

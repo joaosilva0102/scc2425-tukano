@@ -1,5 +1,8 @@
 package tukano.impl;
 
+import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.core.NewCookie;
+import org.checkerframework.checker.units.qual.C;
 import utils.Result;
 import tukano.api.User;
 import tukano.api.Users;
@@ -15,6 +18,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
+import static auth.Authentication.COOKIE_KEY;
 import static java.lang.String.format;
 import static utils.Result.ErrorCode.*;
 import static utils.Result.*;
@@ -64,7 +68,7 @@ public class JavaUsersNoCache implements Users {
 	}
 
 	@Override
-	public Result<User> deleteUser(String userId, String pwd) {
+	public Result<User> deleteUser(String userId, String pwd, NewCookie cookie) {
 		Log.info(() -> format("deleteUser : userId = %s, pwd = %s\n", userId, pwd));
 
 		if (userId == null || pwd == null )
@@ -76,7 +80,7 @@ public class JavaUsersNoCache implements Users {
 			Executors.defaultThreadFactory().newThread( () -> {
 				JavaShortsNoCache.getInstance().deleteAllShorts(userId, pwd, utils.Token.get(userId));
 				try {
-					deleteAllBlobs(userId);
+					deleteAllBlobs(userId, cookie);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -114,11 +118,12 @@ public class JavaUsersNoCache implements Users {
 		return (userId == null || pwd == null || info.getUserId() != null && !userId.equals(info.getUserId()));
 	}
 
-	private Result<Void> deleteAllBlobs(String userId) throws IOException, InterruptedException {
+	private Result<Void> deleteAllBlobs(String userId, NewCookie cookie) throws IOException, InterruptedException {
 		HttpClient client = HttpClient.newHttpClient();
 
 		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create("http://tukano-blob-service:8080/rest/blobs/" + userId + "/blobs?token=" + Token.get(userId)))
+				.uri(URI.create("http://tukano-blobs-service:8080/rest/blobs/" + userId + "/blobs?token=" + Token.get(userId)))
+				.header("Cookie", COOKIE_KEY + "=" + cookie.getValue())
 				.DELETE()
 				.build();
 

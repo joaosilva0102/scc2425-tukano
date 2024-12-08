@@ -1,5 +1,7 @@
 package tukano.impl;
 
+import jakarta.ws.rs.core.Cookie;
+import jakarta.ws.rs.core.NewCookie;
 import tukano.api.*;
 import tukano.api.Short;
 import tukano.impl.data.Following;
@@ -19,6 +21,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static auth.Authentication.COOKIE_KEY;
 import static java.lang.String.format;
 import static utils.Result.ErrorCode.*;
 import static utils.Result.*;
@@ -68,7 +71,7 @@ public class JavaShortsNoCache implements Shorts {
     }
 
     @Override
-    public utils.Result<Void> deleteShort(String shortId, String password) {
+    public utils.Result<Void> deleteShort(String shortId, String password, NewCookie cookie) {
         Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
         utils.Result<Short> s = DB.getOne(shortId, Short.class);
@@ -81,7 +84,7 @@ public class JavaShortsNoCache implements Shorts {
 
             Result<Void> blobsDeleted;
             try {
-                blobsDeleted = deleteShortBlob(shrt.getShortId());
+                blobsDeleted = deleteShortBlob(shrt.getShortId(), cookie);
                 if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -219,11 +222,12 @@ public class JavaShortsNoCache implements Shorts {
         return ok();
     }
 
-    private Result<Void> deleteShortBlob(String blobId) throws IOException, InterruptedException {
+    private Result<Void> deleteShortBlob(String blobId, NewCookie cookie) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://tukano-blob-service:8080/rest/blobs/" + blobId + "?token=" + Token.get(blobId)))
+                .header("Cookie", COOKIE_KEY + "=" + cookie.getValue())
                 .DELETE()
                 .build();
 
