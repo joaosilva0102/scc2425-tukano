@@ -10,7 +10,7 @@ import tukano.api.Short;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 
-@Path("/view")
+@Path("/shorts/view")
 public class IncrementShortViewsResource {
     private static final String SHORTID = "shortId";
 

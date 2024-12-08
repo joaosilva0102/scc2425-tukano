@@ -18,7 +18,7 @@ public interface RestBlobs {
  	@POST
  	@Path("/{" + BLOB_ID +"}")
  	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
-	void upload(@PathParam(BLOB_ID) String blobId, byte[] bytes, @QueryParam(TOKEN) String token, @CookieParam(Authentication.COOKIE_KEY) Cookie cookie);
+	void upload(@PathParam(BLOB_ID) String blobId, byte[] bytes, @QueryParam(TOKEN) String token,@CookieParam(Authentication.COOKIE_KEY ) Cookie cookie);
 
 
  	@GET

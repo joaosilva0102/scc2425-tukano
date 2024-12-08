@@ -8,6 +8,7 @@ import auth.Authentication;
 import jakarta.ws.rs.core.Application;
 
 import serverless.IncrementShortViewsResource;
+import serverless.TukanoRecommendsResource;
 import tukano.api.User;
 import tukano.impl.JavaUsers;
 import utils.IP;
@@ -34,6 +35,7 @@ public class TukanoRestServer extends Application {
 		resources.add(RestShortsResource.class);
 		resources.add(Authentication.class);
 		resources.add(IncrementShortViewsResource.class);
+		resources.add(TukanoRecommendsResource.class);
 		serverURI = String.format(SERVER_BASE_URI, IP.hostAddress(), PORT);
 		//Props.load("azurekeys-region.props");
 		//Props.load("azurekeys-northeurope.props");

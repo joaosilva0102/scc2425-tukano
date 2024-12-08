@@ -105,7 +105,7 @@ public class JavaUsers implements Users {
 	}
 
 	@Override
-	public Result<User> deleteUser(String userId, String pwd, NewCookie cookie) {
+	public Result<User> deleteUser(String userId, String pwd, Cookie cookie) {
 		Log.info(() -> format("deleteUser : userId = %s, pwd = %s\n", userId, pwd));
 
 		if (userId == null || pwd == null)
@@ -158,7 +158,7 @@ public class JavaUsers implements Users {
 		return (userId == null || pwd == null || info.getUserId() != null && !userId.equals(info.getUserId()));
 	}
 
-	private Result<User> removeUserFromSystem(User user, NewCookie cookie) {
+	private Result<User> removeUserFromSystem(User user, Cookie cookie) {
 		String userId = user.getUserId();
 		Cache.removeFromCache(String.format(USER_FMT, userId));
 		Cache.removeFromList(USERS_LIST, user);
@@ -176,7 +176,7 @@ public class JavaUsers implements Users {
 		return DB.deleteOne(user);
 	}
 
-	private Result<Void> deleteAllBlobs(String userId, NewCookie cookie) throws IOException, InterruptedException {
+	private Result<Void> deleteAllBlobs(String userId, Cookie cookie) throws IOException, InterruptedException {
 		HttpClient client = HttpClient.newHttpClient();
 
 		HttpRequest request = HttpRequest.newBuilder()

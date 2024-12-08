@@ -68,7 +68,7 @@ public class JavaUsersNoCache implements Users {
 	}
 
 	@Override
-	public Result<User> deleteUser(String userId, String pwd, NewCookie cookie) {
+	public Result<User> deleteUser(String userId, String pwd, Cookie cookie) {
 		Log.info(() -> format("deleteUser : userId = %s, pwd = %s\n", userId, pwd));
 
 		if (userId == null || pwd == null )
@@ -118,7 +118,7 @@ public class JavaUsersNoCache implements Users {
 		return (userId == null || pwd == null || info.getUserId() != null && !userId.equals(info.getUserId()));
 	}
 
-	private Result<Void> deleteAllBlobs(String userId, NewCookie cookie) throws IOException, InterruptedException {
+	private Result<Void> deleteAllBlobs(String userId, Cookie cookie) throws IOException, InterruptedException {
 		HttpClient client = HttpClient.newHttpClient();
 
 		HttpRequest request = HttpRequest.newBuilder()

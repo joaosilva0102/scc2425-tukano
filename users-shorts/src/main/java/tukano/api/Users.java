@@ -53,7 +53,7 @@ public interface Users {
 	 *         NOT_FOUND if no user exists with the provided name
 	 *         BAD_REQUEST otherwise
 	 */
-	utils.Result<User> deleteUser(String userId, String pwd, NewCookie cookie);
+	utils.Result<User> deleteUser(String userId, String pwd, Cookie cookie);
 	
 	/**
 	 * Returns the list of users for which the pattern is a substring of the userId, case-insensitive. 

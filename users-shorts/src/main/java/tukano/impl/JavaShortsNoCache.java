@@ -71,7 +71,7 @@ public class JavaShortsNoCache implements Shorts {
     }
 
     @Override
-    public utils.Result<Void> deleteShort(String shortId, String password, NewCookie cookie) {
+    public utils.Result<Void> deleteShort(String shortId, String password, Cookie cookie) {
         Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
         utils.Result<Short> s = DB.getOne(shortId, Short.class);
@@ -222,7 +222,7 @@ public class JavaShortsNoCache implements Shorts {
         return ok();
     }
 
-    private Result<Void> deleteShortBlob(String blobId, NewCookie cookie) throws IOException, InterruptedException {
+    private Result<Void> deleteShortBlob(String blobId, Cookie cookie) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()

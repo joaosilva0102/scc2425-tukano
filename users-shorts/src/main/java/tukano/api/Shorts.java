@@ -1,5 +1,6 @@
 package tukano.api;
 
+import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.NewCookie;
 import utils.Result;
 
@@ -41,7 +42,7 @@ public interface Shorts {
 	 * 	NOT_FOUND if shortId does not match an existing short
 	 * 	FORBIDDEN, if the password is not correct;
 	 */
-	utils.Result<Void> deleteShort(String shortId, String password, NewCookie cookie);
+	utils.Result<Void> deleteShort(String shortId, String password, Cookie cookie);
 	
 	
 	/**

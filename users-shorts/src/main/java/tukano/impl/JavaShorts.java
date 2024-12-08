@@ -1,6 +1,7 @@
 package tukano.impl;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.NewCookie;
 import tukano.api.*;
@@ -15,6 +16,7 @@ import utils.cache.RedisCache;
 import utils.database.DB;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.*;
 import java.util.*;
@@ -81,7 +83,7 @@ public class JavaShorts implements Shorts {
     }
 
     @Override
-    public utils.Result<Void> deleteShort(String shortId, String password, NewCookie cookie) {
+    public utils.Result<Void> deleteShort(String shortId, String password, Cookie cookie) {
         Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
 
         utils.Result<Short> s = Cache.getFromCache(format(SHORT_FMT, shortId), Short.class);
@@ -221,9 +223,12 @@ public class JavaShorts implements Shorts {
     @Override
     public utils.Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
-
-//        List<Short> shorts = tukanoRecommends();
-//        Log.info(() -> format("Shorts size  : %d\n", shorts.size()));
+        List<Short> shorts = new ArrayList<>();
+        try {
+            shorts = tukanoRecommends().value();
+        } catch (Exception e) {
+            Log.severe("Error retrieving tukano recommendationss");
+        }
 
         String cacheKey = format(FEED_FMT, userId);
         List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
@@ -393,7 +398,7 @@ public class JavaShorts implements Shorts {
         }
     }
 
-    private Result<Void> deleteShortBlob(String blobId, NewCookie cookie) throws IOException, InterruptedException {
+    private Result<Void> deleteShortBlob(String blobId, Cookie cookie) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -406,6 +411,24 @@ public class JavaShorts implements Shorts {
         if(response.statusCode() != 200)
             return error(BAD_REQUEST);
         return Result.ok();
+    }
+
+    private Result<List<Short>> tukanoRecommends() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://tukano-users-shorts-service:8080/rest/shorts/recommendations"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        String responseBody = response.body();
+        Gson gson = new Gson();
+        Type listType = new TypeToken<List<Short>>() {}.getType();
+        List<Short> tukanoShorts = gson.fromJson(responseBody, listType);
+        if(response.statusCode() != 200)
+            return error(BAD_REQUEST);
+        return Result.ok(tukanoShorts);
     }
 
 }

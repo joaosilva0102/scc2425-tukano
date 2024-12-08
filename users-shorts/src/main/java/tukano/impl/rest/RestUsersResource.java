@@ -3,6 +3,7 @@ package tukano.impl.rest;
 import java.util.List;
 
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Cookie;
 import tukano.api.User;
 import tukano.api.Users;
 import tukano.api.rest.RestUsers;
@@ -36,8 +37,8 @@ public class RestUsersResource extends RestResource implements RestUsers {
 	}
 
 	@Override
-	public User deleteUser(String name, String pwd) {
-		return super.resultOrThrow( impl.deleteUser(name, pwd));
+	public User deleteUser(String name, String pwd, Cookie cookie) {
+		return super.resultOrThrow( impl.deleteUser(name, pwd, cookie));
 	}
 
 	@Override
