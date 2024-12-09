@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tukano-ingress
+  namespace: tukano
+spec:
+  rules:
+      - http:
+          paths:
+            - path: /rest/users
+              pathType: Prefix
+              backend:
+                service:
+                  name: tukano-users-shorts-service
+                  port:
+                    number: 8080
+            - path: /rest/shorts
+              pathType: Prefix
+              backend:
+                service:
+                  name: tukano-users-shorts-service
+                  port:
+                    number: 8080
+            - path: /rest/login
+              pathType: Prefix
+              backend:
+                service:
+                  name: tukano-users-shorts-service
+                  port:
+                    number: 8080
+            - path: /rest/blobs
+              pathType: Prefix
+              backend:
+                service:
+                  name: tukano-blobs-service
+                  port:
+                    number: 8080

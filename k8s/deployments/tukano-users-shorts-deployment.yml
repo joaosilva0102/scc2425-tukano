@@ -1,0 +1,27 @@
+# Tukano App Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tukano-users-shorts-service
+  namespace: tukano
+  labels:
+    app: tukano-users-shorts-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tukano-users-shorts-service
+  template:
+    metadata:
+      name: tukano-users-shorts-service
+      labels:
+        app: tukano-users-shorts-service
+    spec:
+      nodeSelector:
+        "kubernetes.io/os": linux
+      containers:
+        - name: tukano-users-shorts-service
+          image: joaosilva0102/tukano-users-shorts
+          ports:
+            - containerPort: 8080
+      restartPolicy: Always
