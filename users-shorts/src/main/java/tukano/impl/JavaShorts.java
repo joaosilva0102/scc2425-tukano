@@ -99,11 +99,13 @@ public class JavaShorts implements Shorts {
             likesToDelete.forEach(DB::deleteOne);
 
             Result<Void> blobsDeleted;
-            try {
-                blobsDeleted = deleteShortBlob(shrt.getShortId(), cookie);
-                if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            if(!user.getUserId().equals("Tukano")) {
+                try {
+                    blobsDeleted = deleteShortBlob(shrt.getShortId(), cookie);
+                    if (!blobsDeleted.isOK()) Log.warning("No blob found associated with this short");
+                } catch (Exception e) {
+                    Log.warning("User not authorized to delete the blob");
+                }
             }
 
             DB.deleteOne(shrt);

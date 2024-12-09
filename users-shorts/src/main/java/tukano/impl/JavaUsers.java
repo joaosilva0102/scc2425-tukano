@@ -169,7 +169,7 @@ public class JavaUsers implements Users {
             try {
                 deleteAllBlobs(userId, cookie);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                Log.warning("User not authorized to delete the blob");
             }
         }).start();
 

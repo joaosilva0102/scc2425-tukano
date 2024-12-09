@@ -40,8 +40,11 @@ public class TukanoRestServer extends Application {
 		//Props.load("azurekeys-region.props");
 		//Props.load("azurekeys-northeurope.props");
 		User user = new User("Tukano", "12345", "tukano@tukano.com", "Tukano Recommends");
+		User admin = new User("admin", "admin", "admin@tukano.com", "Admin");
 		if(!JavaUsers.getInstance().getUser(user.getUserId(),user.getPwd()).isOK())
 			JavaUsers.getInstance().createUser(user);
+		if(!JavaUsers.getInstance().getUser(admin.getUserId(),admin.getPwd()).isOK())
+			JavaUsers.getInstance().createUser(admin);
 	}
 
 	@Override

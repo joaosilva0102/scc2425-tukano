@@ -19,6 +19,11 @@ scenarios:
     flow:
       - post:
           beforeRequest: "getLoginDetails"
+          url: "/login"
+          form:
+            username: "{{ userId }}"
+            password: "{{ pwd }}"
+      - post:
           url: "/shorts/{{ userId }}?pwd={{ pwd }}"
           afterResponse: "processVideoAddReply"
       - post:

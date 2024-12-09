@@ -5,16 +5,16 @@
  */
 
 module.exports = {
-  uploadRandomizedUser,
-  processRegisterReply,
-  getLoginDetails,
-  uploadBlobBody,
-  getShortDownloadDetails,
-  processVideoAddReply,
-  processVideoGetReply,
-  setupLikeShort,
-  //getShortDetails,
-  getFollowDetails,
+    uploadRandomizedUser,
+    processRegisterReply,
+    getLoginDetails,
+    uploadBlobBody,
+    getShortDownloadDetails,
+    processVideoAddReply,
+    processVideoGetReply,
+    setupLikeShort,
+    //getShortDetails,
+    getFollowDetails,
 }
 
 const SHORT_ID_FIELD = 'shortId';
@@ -48,10 +48,10 @@ function addUser(user_info) {
 
 function addTestData() {
     var basefile
-	if( fs.existsSync( '/shorts')) 
-		basefile = '/data/users.csv'
-	else
-		basefile =  'data/users.csv'	
+    if( fs.existsSync( '/shorts'))
+        basefile = '/data/users.csv'
+    else
+        basefile =  'data/users.csv'
     csv.parseFile(basefile)
         .on('error', error => console.error(error))
         .on('data', row => addUser(row))
@@ -76,7 +76,7 @@ function randomUsername(char_limit){
 function randomPassword(pass_len){
     const skip_value = 33;
     const lim_values = 94;
-    
+
     let password = '';
     let num_chars = Math.floor(Math.random() * pass_len);
     for (let i = 0; i < pass_len; i++) {
@@ -98,7 +98,7 @@ function processRegisterReply(requestParams, response, context, ee, next) {
         pendingUsers.splice(pendingUsers.indexOf(response.body),1);
     }
     return next();
-} 
+}
 
 /**
  * Register a random user.
@@ -109,7 +109,7 @@ function uploadRandomizedUser(requestParams, context, ee, next) {
     let pword = randomPassword(15);
     let email = username + "@campus.fct.unl.pt";
     let displayName = username;
-    
+
     const user = {
         userId: username,
         pwd: pword,
@@ -119,36 +119,36 @@ function uploadRandomizedUser(requestParams, context, ee, next) {
     requestParams.body = JSON.stringify(user);
     registeredUsersMap.set('uesrname', user);
     pendingUsers.push(username);
-    
+
     return next();
-} 
+}
 
 // Loads data about shorts from disk
 function loadData() {
-	var i
-	var basefile
-	if( fs.existsSync( '/shorts')) 
-		basefile = '/shorts/house.'
-	else
-		basefile =  'shorts/house.'	
-	for( i = 1; i <= 50 ; i++) {
+    var i
+    var basefile
+    if( fs.existsSync( '/shorts'))
+        basefile = '/shorts/house.'
+    else
+        basefile =  'shorts/house.'
+    for( i = 1; i <= 50 ; i++) {
         // best to not keep a bunch of files in memory.
-		//var vid  = fs.readFileSync(basefile + i + '.mpv')
-		var vid  = basefile + i + '.jpg'
-		videos.push( vid )
-	}
+        //var vid  = fs.readFileSync(basefile + i + '.mpv')
+        var vid  = basefile + i + '.jpg'
+        videos.push( vid )
+    }
 }
 
 loadData();
 
 function saveShorts() {
-	var basefile1
+    var basefile1
     var basefile2
-	if (fs.existsSync( '/shorts'))  {
-		basefile1 = '/shorts/shorts.list'
+    if (fs.existsSync( '/shorts'))  {
+        basefile1 = '/shorts/shorts.list'
         basefile2 = '/shorts/shorts.map'
     } else {
-		basefile1 = 'shorts/shorts.list'	
+        basefile1 = 'shorts/shorts.list'
         basefile2 = 'shorts/shorts.map'
     }
     fs.writeFile(basefile1, JSON.stringify(videoIds), err => {
@@ -164,13 +164,13 @@ function saveShorts() {
 }
 
 function loadShorts() {
-	var basefile1
+    var basefile1
     var basefile2
-	if( fs.existsSync( '/shorts')) {
-		basefile1 = '/shorts/shorts.list'
+    if( fs.existsSync( '/shorts')) {
+        basefile1 = '/shorts/shorts.list'
         basefile2 = '/shorts/shorts.map'
-	} else {
-		basefile1 = 'shorts/shorts.list'	
+    } else {
+        basefile1 = 'shorts/shorts.list'
         basefile2 = 'shorts/shorts.map'
     }
     fs.readFile(basefile1, 'utf8', (err, data) => {
@@ -194,23 +194,23 @@ loadShorts()
 
 // May need to change some of this logic.
 function selectVideoToDownload(context, events, done) {
-	if( videoIds.length > 0) {
+    if( videoIds.length > 0) {
         var random = Math.floor(Math.random() * videoIds.length)
-		context.vars['videoId'] = videoIds[random]
-	} else {
-		delete context.vars.videoId
-	}
-	return done()
+        context.vars['videoId'] = videoIds[random]
+    } else {
+        delete context.vars.videoId
+    }
+    return done()
 }
 
 function uploadBlobBody(requestParams, context, ee, next) {
     var random = Math.floor(Math.random() * videos.length)
-	requestParams.body = fs.readFileSync(videos[random])
-	return next()
+    requestParams.body = fs.readFileSync(videos[random])
+    return next()
 }
 
 function processVideoAddReply(requestParams, response, context, ee, next) {
-    if( typeof response.body !== 'undefined' && response.body.length > 0) {     
+    if( typeof response.body !== 'undefined' && response.body.length > 0) {
         var short_details =  JSON.parse(response.body);
         if(SHORT_ID_FIELD == "shortId") {
             videoIds.push(short_details.shortId);
@@ -221,16 +221,16 @@ function processVideoAddReply(requestParams, response, context, ee, next) {
         }
         context.vars['blobUrl'] = short_details.blobUrl.split("/blobs/").at(-1)
         saveShorts();
-    }                                                                           
-    return next();                                                              
+    }
+    return next();
 }
 
 function processVideoGetReply(requestParams, response, context, ee, next) {
-    if( typeof response.body !== 'undefined' && response.body.length > 0) {     
+    if( typeof response.body !== 'undefined' && response.body.length > 0) {
         var short_details =  JSON.parse(response.body);
         context.vars['blobUrl'] = short_details.blobUrl.split("/blobs/").at(-1)
-    }                                                                           
-    return next();                                                              
+    }
+    return next();
 }
 
 // Helper function to get a random user.
@@ -285,6 +285,6 @@ function getShortDownloadDetails(requestParams, context, ee, next) {
     context.vars['shortId'] = short_id;
     var owner_details = registeredUsersMap.get(shortMap.get(short_id).ownerId);
     context.vars['userId'] = owner_details.userId;
-    context.vars['pwd'] = owner_details.pwd; 
+    context.vars['pwd'] = owner_details.pwd;
     return next();
 }

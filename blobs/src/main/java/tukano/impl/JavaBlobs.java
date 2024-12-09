@@ -110,16 +110,14 @@ public class JavaBlobs implements Blobs {
 	}
 
 	private Result<Void> incrementViews(String shortId) throws IOException, InterruptedException {
-		Log.info(() -> format("1 - incrementViews : shortId = %s", shortId));
 		HttpClient client = HttpClient.newHttpClient();
-		Log.info(() -> format("2 - incrementViews : shortId = %s", shortId));
+
 		HttpRequest request = HttpRequest.newBuilder()
 				.uri(URI.create("http://tukano-users-shorts-service:8080/rest/views/" + shortId))
 				.POST(HttpRequest.BodyPublishers.noBody())
 				.build();
-		Log.info(() -> format("3 - incrementViews : shortId = %s", shortId));
+
 		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-		Log.info(() -> format("4 - incrementViews : response = %s", response.body()));
 		if(response.statusCode() != 200)
 			return error(BAD_REQUEST);
 		return Result.ok();

@@ -1,0 +1,31 @@
+config:
+  target: http://127.0.0.1/rest
+  phases:
+    - name: delete_users
+      duration: 100
+      arrivalCount: 200
+  processor: ./test-utils.js
+  payload:
+    path: ./data/users.csv
+    order: sequence # selects users sequentially, default is random
+    #loadAll: true # load the whole CSV
+    skipHeader: true # The first line is a header, so we want to skip it
+    delimiter: "," # standard delimiter
+    skipEmptyLines: true # not important in our case
+    fields:
+      - "userId"
+      - "email"
+      - "pwd"
+      - "displayName"
+scenarios:
+  - name: TuKanoDeleteUserFlow
+    flow:
+      - post:
+          url: "/login"
+          form:
+            username: "admin"
+            password: "admin"
+      - delete:
+          url: "/users/{{ userId }}?pwd={{ pwd }}"
+          headers:
+            Accepts: application/json
