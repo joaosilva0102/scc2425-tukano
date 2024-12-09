@@ -2,8 +2,8 @@ config:
     target: http://127.0.0.1/rest
     phases:
         - name: simple_post
-          duration: 10
-          arrivalRate: 2
+          duration: 60
+          arrivalRate: 5
     http:
         timeout: 10000
     plugins:
@@ -11,7 +11,7 @@ config:
     payload:
         path: ./data/users.csv
         order: sequence # selects users sequentially, default is random
-        # loadAll: true # load the whole CSV
+        loadAll: true # load the whole CSV
         skipHeader: true # The first line is a header, so we want to skip it
         delimiter: "," # standard delimiter
         skipEmptyLines: true # not important in our case
