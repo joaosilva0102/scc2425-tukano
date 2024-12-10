@@ -1,3 +1,29 @@
+// Local Deployment (Minikube) ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+minikube start (administrator)
+
+*** Compile, build, push and deploy ***
+
+minikube tunnel
+
+*** Access app at 127.0.0.1/rest/ ***
+
+// Remote Deployment (Azure) --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+az group create --name <resource-group-name> --location <resource-group-location>
+az ad sp create-for-rbac --name http://<domain_prefix> --role Contributor --scope /subscriptions/<id_of_your_subscription>
+az aks create --resource-group <rg_name> --name <cluster_name> --node-vm-size Standard_B2s --generate-ssh-keys --node-count 2 --service-principal <appId_REPLACE> --client-secret <password_REPLACE>
+az aks get-credentials --resource-group <rg_name> --name <cluster_name>
+
+*** Compile, build, push and deploy ***
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/cloud/deploy.yaml
+kubectl get services --namespace ingress-nginx
+
+*** Access app at http://<ExternalIP>/rest ***
+
+// Compile, build, push and deploy --------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 mvn clean install
 
 docker build -t joaosilva0102/tukano-users-shorts ./users-shorts
@@ -10,6 +36,7 @@ kubectl apply -f k8s/tukano-namespace.yml
 kubectl apply -f k8s/volumes/persistent-volume-postgres.yml
 kubectl apply -f k8s/volumes/persistent-volume-claim-postgres.yml
 kubectl apply -f k8s/volumes/persistent-volume-blobs.yml
+kubectl apply -f k8s/volumes/persistent-volume-claim-blobs.yml
 kubectl apply -f k8s/secrets/postgres-secrets.yml
 kubectl apply -f k8s/deployments/redis-deployment.yml
 kubectl apply -f k8s/deployments/postgres-deployment.yml
@@ -21,23 +48,31 @@ kubectl apply -f k8s/services/redis-service.yml
 kubectl apply -f k8s/services/postgres-service.yml
 kubectl apply -f k8s/tukano-ingress.yml
 
+// Useful commands ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 kubectl get pods --namespace tukano
 
-minikube service tukano-users-shorts-service --namespace tukano
-
-kubectl logs -f tukano-users-shorts-service-<id> --namespace tukano
-
-kubectl exec -it <POD_NAME> -n tukano -- psql -U postgres
 kubectl logs -f <POD_NAME> -n tukano
+kubectl exec -it <POSTGRES_POD_NAME> -n tukano -- psql -U postgres
 
 kubectl get services --namespace tukano
+
+minikube service <SERVICE_NAME> --namespace tukano
+
+kubectl config use-context minikube
+kubectl config use-context <cluster_name>
+
+// Delete kubernetes resources ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 kubectl delete deployments,services,pods --all --namespace tukano
 kubectl delete pvc --all --namespace tukano
 kubectl delete pv --all --namespace tukano
 kubectl delete ingress tukano-ingress --namespace tukano
-
 kubectl delete deployments,services,pods,pvc,pv,secrets,ingress --all --namespace tukano
+
+// Delete Azure Resources -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+az aks delete --resource-group <resource-group-name> --name <cluster_name> --yes --no-wait
+az group delete --resource-group <rg-name>
 
 
 

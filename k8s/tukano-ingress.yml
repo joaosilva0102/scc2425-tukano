@@ -4,24 +4,11 @@ metadata:
   name: tukano-ingress
   namespace: tukano
 spec:
+  ingressClassName: nginx
   rules:
       - http:
           paths:
-            - path: /rest/users
-              pathType: Prefix
-              backend:
-                service:
-                  name: tukano-users-shorts-service
-                  port:
-                    number: 8080
-            - path: /rest/shorts
-              pathType: Prefix
-              backend:
-                service:
-                  name: tukano-users-shorts-service
-                  port:
-                    number: 8080
-            - path: /rest/login
+            - path: /rest/
               pathType: Prefix
               backend:
                 service:

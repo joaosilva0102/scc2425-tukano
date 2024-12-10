@@ -19,6 +19,10 @@ spec:
     spec:
       nodeSelector:
         "kubernetes.io/os": linux
+      volumes:
+        - name: blobs-pv-storage
+          persistentVolumeClaim:
+            claimName: blobs-pvc
       containers:
         - name: tukano-blobs-service
           image: joaosilva0102/tukano-blobs
@@ -26,9 +30,5 @@ spec:
             - containerPort: 8080
           volumeMounts:
             - mountPath: "/mnt/vol"
-              name: mediavolume
-      volumes:
-        - name: mediavolume
-          persistentVolumeClaim:
-            claimName: persistent-volume-blobs
+              name: blobs-pv-storage
       restartPolicy: Always

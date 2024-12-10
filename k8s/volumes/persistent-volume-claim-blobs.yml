@@ -1,13 +1,12 @@
 # Persistent Volume Claim
 apiVersion: v1
-kind: PersistentVolume
+kind: PersistentVolumeClaim
 metadata:
-  name: blobs-pv-storage
+  name: blobs-pvc
   namespace: tukano
 spec:
-  capacity:
-    storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  hostPath:
-    path: "/mnt/data"
+  resources:
+    requests:
+      storage: 1Gi

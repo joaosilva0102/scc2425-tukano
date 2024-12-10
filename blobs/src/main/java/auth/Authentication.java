@@ -39,5 +39,4 @@ public class Authentication {
 
         return session;
     }
-
 }

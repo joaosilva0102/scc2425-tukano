@@ -31,8 +31,8 @@ public class TukanoRecommendsResource {
         //Props.load("azurekeys-region.props");
 
         Set<String> shortKeys = Cache.getKeys("short:*").value();
-        String cacheKey = format("user:%s:shorts", "Tukano");
-        List<Short> tukanoshorts = Cache.getList(cacheKey, Short.class).value();
+        String cacheKey = "user:Tukano:shorts";
+        List<Short> tukanoShorts = Cache.getList(cacheKey, Short.class).value();
         List<Short> shorts = new ArrayList<>();
         User user = new User("Tukano", "12345", "tukano@tukano.com", " Tukano Recomends");
         var result = JavaShorts.getInstance().getShorts(user.getUserId());
@@ -54,7 +54,7 @@ public class TukanoRecommendsResource {
                         .httpOnly(true)
                         .build());
         }
-        for (Short ts : tukanoshorts) {
+        for (Short ts : tukanoShorts) {
             Cache.removeFromCache(ts.getShortId());
         }
 
