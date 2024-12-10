@@ -3,7 +3,6 @@ package serverless;
  * Function to upload the top 5 shorts to Tukano Recommends user
  */
 
-import com.google.gson.Gson;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
@@ -17,8 +16,6 @@ import jakarta.ws.rs.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
-import static java.lang.String.format;
-
 @Path("/shorts/recommendations")
 public class TukanoRecommendsResource {
 
@@ -28,7 +25,6 @@ public class TukanoRecommendsResource {
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Short> tukanoRecommendations() {
-        //Props.load("azurekeys-region.props");
 
         Set<String> shortKeys = Cache.getKeys("short:*").value();
         String cacheKey = "user:Tukano:shorts";

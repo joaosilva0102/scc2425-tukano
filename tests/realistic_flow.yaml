@@ -1,5 +1,5 @@
 config:
-  target: http://127.0.0.1/rest
+  target: http://4.207.199.250/rest
   plugins:
     metrics-by-endpoint: {} # Used to get metrics for each endpoint individually.
   processor: ./test-utils.js
@@ -8,9 +8,9 @@ config:
       duration: 10
       arrivalRate: 1
       rampTo: 5
-      #- name: "Main test"    # MAIN TESTS: duration: 30s, with 10 new clients/sec. Should be varied depending on scenario.
-      #duration: 30
-      #arrivalRate: 10
+    - name: "Main test"    # MAIN TESTS: duration: 30s, with 10 new clients/sec. Should be varied depending on scenario.
+      duration: 30
+      arrivalRate: 10
 scenarios:
   - name: 'Register user'
     weight: 10

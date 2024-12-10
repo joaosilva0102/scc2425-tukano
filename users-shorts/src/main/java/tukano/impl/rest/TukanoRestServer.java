@@ -12,7 +12,6 @@ import serverless.TukanoRecommendsResource;
 import tukano.api.User;
 import tukano.impl.JavaUsers;
 import utils.IP;
-import utils.Props;
 
 public class TukanoRestServer extends Application {
 	final private static Logger Log = Logger.getLogger(TukanoRestServer.class.getName());
@@ -37,8 +36,7 @@ public class TukanoRestServer extends Application {
 		resources.add(IncrementShortViewsResource.class);
 		resources.add(TukanoRecommendsResource.class);
 		serverURI = String.format(SERVER_BASE_URI, IP.hostAddress(), PORT);
-		//Props.load("azurekeys-region.props");
-		//Props.load("azurekeys-northeurope.props");
+
 		User user = new User("Tukano", "12345", "tukano@tukano.com", "Tukano Recommends");
 		User admin = new User("admin", "admin", "admin@tukano.com", "Admin");
 		if(!JavaUsers.getInstance().getUser(user.getUserId(),user.getPwd()).isOK())

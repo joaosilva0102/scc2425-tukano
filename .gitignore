@@ -8,4 +8,4 @@ users-shorts/src/main/resources/azurekeys-region.props
 users-shorts/src/main/resources/application.properties
 .png
 .jpg
-node_modules
+tests/node_modules

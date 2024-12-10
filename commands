@@ -15,24 +15,26 @@ az ad sp create-for-rbac --name http://<domain_prefix> --role Contributor --scop
 az aks create --resource-group <rg_name> --name <cluster_name> --node-vm-size Standard_B2s --generate-ssh-keys --node-count 2 --service-principal <appId_REPLACE> --client-secret <password_REPLACE>
 az aks get-credentials --resource-group <rg_name> --name <cluster_name>
 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/cloud/deploy.yaml
+
 *** Compile, build, push and deploy ***
 
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0-beta.0/deploy/static/provider/cloud/deploy.yaml
 kubectl get services --namespace ingress-nginx
 
-*** Access app at http://<ExternalIP>/rest ***
+*** Access app at http://<ExternalIP>/rest/ ***
 
 // Compile, build, push and deploy --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 mvn clean install
 
-docker build -t joaosilva0102/tukano-users-shorts ./users-shorts
-docker build -t joaosilva0102/tukano-blobs ./blobs
+docker build -t <docker-hub-username>/tukano-users-shorts ./users-shorts
+docker build -t <docker-hub-username>/tukano-blobs ./blobs
 
-docker push joaosilva0102/tukano-users-shorts
-docker push joaosilva0102/tukano-blobs
+docker push <docker-hub-username>/tukano-users-shorts
+docker push <docker-hub-username>/tukano-blobs
 
 kubectl apply -f k8s/tukano-namespace.yml
+
 kubectl apply -f k8s/volumes/persistent-volume-postgres.yml
 kubectl apply -f k8s/volumes/persistent-volume-claim-postgres.yml
 kubectl apply -f k8s/volumes/persistent-volume-blobs.yml
@@ -40,12 +42,16 @@ kubectl apply -f k8s/volumes/persistent-volume-claim-blobs.yml
 kubectl apply -f k8s/secrets/postgres-secrets.yml
 kubectl apply -f k8s/deployments/redis-deployment.yml
 kubectl apply -f k8s/deployments/postgres-deployment.yml
+kubectl apply -f k8s/services/redis-service.yml
+kubectl apply -f k8s/services/postgres-service.yml
+
+*** Wait until postgres pod is ready ***
+
 kubectl apply -f k8s/deployments/tukano-blobs-deployment.yml
 kubectl apply -f k8s/deployments/tukano-users-shorts-deployment.yml
 kubectl apply -f k8s/services/tukano-blobs-service.yml
 kubectl apply -f k8s/services/tukano-users-shorts-service.yml
-kubectl apply -f k8s/services/redis-service.yml
-kubectl apply -f k8s/services/postgres-service.yml
+
 kubectl apply -f k8s/tukano-ingress.yml
 
 // Useful commands ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -67,12 +73,33 @@ kubectl delete deployments,services,pods --all --namespace tukano
 kubectl delete pvc --all --namespace tukano
 kubectl delete pv --all --namespace tukano
 kubectl delete ingress tukano-ingress --namespace tukano
-kubectl delete deployments,services,pods,pvc,pv,secrets,ingress --all --namespace tukano
+kubectl delete deployments,services,pods,pvc,pv,secrets --all --namespace tukano
 
 // Delete Azure Resources -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 az aks delete --resource-group <resource-group-name> --name <cluster_name> --yes --no-wait
 az group delete --resource-group <rg-name>
 
+// Artillery tests ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+cd tests
+docker build -t <docker-hub-username>/artillery-container .
+docker push <docker-hub-username>/artillery-container
+az container create --resource-group tukano-rg --name artillery-container-northeurope --image <docker-hub-username>/artillery-container --ports 8080 --dns-name-label tukano-artillery-northeurope --registry-username <docker-hub-username> --registry-password <docker-hub-password> --registry-login-server index.docker.io --location northeurope --restart-policy Never
+az container create --resource-group tukano-rg --name artillery-container-eastus --image <docker-hub-username>/artillery-container --ports 8080 --dns-name-label tukano-artillery-eastus --registry-username <docker-hub-username> --registry-password <docker-hub-password> --registry-login-server index.docker.io --location eastus --restart-policy Never
+az container create --resource-group tukano-rg --name artillery-container-westus --image <docker-hub-username>/artillery-container --ports 8080 --dns-name-label tukano-artillery-westus --registry-username <docker-hub-username> --registry-password <docker-hub-password> --registry-login-server index.docker.io --location westus --restart-policy Never
 
+az container logs --resource-group tukano-rg --name artillery-container-northeurope
+az container logs --resource-group tukano-rg --name artillery-container-eastus
+az container logs --resource-group tukano-rg --name artillery-container-westus
+
+az container create --resource-group <rg_name> \
+            --name <container_name> \
+            --image <image_name> \
+            --ports 8080 \
+            --dns-name-label <dns_name_label> \
+            --registry-username <dockerhub_username> \
+            --registry-password <dockerhub_password> \
+            --registry-login-server index.docker.io \
+            --location <location> \
+            --restart-policy Never

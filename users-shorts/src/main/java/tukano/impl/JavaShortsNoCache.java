@@ -1,7 +1,6 @@
 package tukano.impl;
 
 import jakarta.ws.rs.core.Cookie;
-import jakarta.ws.rs.core.NewCookie;
 import tukano.api.*;
 import tukano.api.Short;
 import tukano.impl.data.Following;
@@ -226,7 +225,7 @@ public class JavaShortsNoCache implements Shorts {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://tukano-blob-service:8080/rest/blobs/" + blobId + "?token=" + Token.get(blobId)))
+                .uri(URI.create("http://tukano-blobs-service:8080/rest/blobs/" + blobId + "?token=" + Token.get(blobId)))
                 .header("Cookie", COOKIE_KEY + "=" + cookie.getValue())
                 .DELETE()
                 .build();
@@ -235,11 +234,5 @@ public class JavaShortsNoCache implements Shorts {
         if(response.statusCode() != 200)
             return error(BAD_REQUEST);
         return Result.ok();
-    }
-
-    private void incrementShortViews(String shortId) {
-        Short shrt = DB.getOne(shortId, Short.class).value();
-        shrt.incrementViews();
-        DB.updateOne(shrt);
     }
 }

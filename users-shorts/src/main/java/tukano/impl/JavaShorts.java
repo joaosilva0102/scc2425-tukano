@@ -3,7 +3,6 @@ package tukano.impl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import jakarta.ws.rs.core.Cookie;
-import jakarta.ws.rs.core.NewCookie;
 import tukano.api.*;
 import tukano.api.Short;
 import tukano.impl.data.Following;
@@ -12,7 +11,6 @@ import tukano.impl.rest.TukanoRestServer;
 import utils.Result;
 import utils.Token;
 import utils.cache.Cache;
-import utils.cache.RedisCache;
 import utils.database.DB;
 
 import java.io.IOException;
@@ -34,7 +32,6 @@ public class JavaShorts implements Shorts {
     private static final String SHORT_FMT = "short:%s";
     private static final String USER_SHORTS_FMT = "user:%s:shorts";
     private static final String FEED_FMT = "user:%s:feed";
-    private static final Gson gson = new Gson();
     private static final String BLOBS_NAME = "blobs";
 
     private static Shorts instance;
@@ -225,8 +222,9 @@ public class JavaShorts implements Shorts {
     @Override
     public utils.Result<List<String>> getFeed(String userId, String password) {
         Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
-        /*
         List<Short> recommendedShorts = new ArrayList<>();
+        String cacheKey = format(FEED_FMT, userId);
+        List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
         try {
             recommendedShorts = tukanoRecommends().value();
         } catch (Exception e) {
@@ -238,9 +236,6 @@ public class JavaShorts implements Shorts {
                 Cache.removeFromCache(cacheKey);
                 break;
             }
-        */
-        String cacheKey = format(FEED_FMT, userId);
-        List<Short> cachedFeed = Cache.getList(format(FEED_FMT, userId), Short.class).value();
         if(Cache.isListCached(cacheKey)) {
             List<Short> sortedFeed = new ArrayList<>(cachedFeed);
             sortedFeed.sort(Comparator.comparing(Short::getTimestamp).reversed());

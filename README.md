@@ -2,49 +2,42 @@
 João Silva | 70373 | jpms.silva@campus.fct.un.pt  
 João Bernardo | 62612 | jmp.bernardo@campus.fct.unl.pt
 
-## Before running the app
-Before running the app, ensure you have the following Azure resources deployed (in the same resource group): 
-- CosmosDB NoSQL
-- CosmosDB PostegreSQL
-- BlobStorage
-- Redis Cache
-- Functions App
-- Web App
+# Run the app
+## Locally on Minikube
 
-## Properties configuration  
-After that, configure the "azurekeys-region-template.props", inside the src/main/resources folder with the respective keys/urls from the resources created
+– To run the Tukano app on Minikube, we first need to start the docker engine and run minikube
+start ;
 
-Also, configure both the hibernate.cfg.xml files in "src/main/resources" and "src/webapp/WEB-INF/classes" with the CosmosDB PostegreSQL connection url and username/password
+– Then, we need to compile the project, build the users-shorts and blobs docker images and push
+them to docker hub
 
-After deploying the Azure functions, insert the function url's inside the azurekeys-region-template.props
+– Now we deploy the Kubernetes resources, starting by the namespaces, volumes, secrets, services
+and deployments for Redis and Postgres
 
-In the pom.xml, fill the properties block with the functionAppName, functionRegion, functionStorageAccountName and functionResourceGroup
+– Then, after the Postgres pod is ready, deploy the users-shorts and blobs services
 
-Finally, rename the azure-region-template.props to azurekeys-region.props (remove the '-template')
+– Finally, deploy the ingress service and run minikube tunnel to expose this service for external
+access
 
-## Switching between implementations
-To test with or without cache, change the booleans in the following classes:
-- tukano/impl/rest/RestShortsResource.java
-- tukano/impl/rest/RestUsersResource.java
-- serverless/IncrementShortViews.java
+– The IP address should be 127.0.0.1 and the endpoints should be accessible in the /rest/* path
+(http://127.0.0.1/rest/*)
 
-To test with PostgreSQL or NoSQL, change the boolean in utils/database/DB.java
+## Deploy to Azure AKS
 
-## Deploying the app
-To deploy the Azure Functions, run:  (don't forget to set up the function url's)
-```
-mvn clean compile package azure-functions:deploy
-```
+– After creating a resource group and service principal, create a AKS cluster on that resource group,
+using the credentials from the service principal and change the kubernetes context by running the
+az aks get-credentials command
 
-To deploy the web app, run: 
-```
-mvn clean compile package azure-webapp:deploy
-```
+– Deploy to the AKS cluster the resources to enable the ingress resource to be used by using the
+ingress-nginx resource optimized for Azure Cloud
 
-To run artillery tests, run:
-```
-artillery run artillery/test_tukano.yaml
-```
+– Execute the steps 2 to 5 from the local deployment
+
+– Get the ingress control external ip by running kubectl get services –namespace ingress-nginx
+
+– Finally, access the application with the url http://<EXTERNAL-IP>/rest/*
+
+
 
 
 

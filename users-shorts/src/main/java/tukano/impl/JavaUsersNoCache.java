@@ -1,8 +1,6 @@
 package tukano.impl;
 
 import jakarta.ws.rs.core.Cookie;
-import jakarta.ws.rs.core.NewCookie;
-import org.checkerframework.checker.units.qual.C;
 import utils.Result;
 import tukano.api.User;
 import tukano.api.Users;
@@ -94,7 +92,7 @@ public class JavaUsersNoCache implements Users {
 	public Result<List<User>> searchUsers(String pattern) {
 		Log.info( () -> format("searchUsers : patterns = %s\n", pattern));
 
-		var query = format("SELECT * FROM User u WHERE UPPER(u.userid) LIKE '%%%s%%'", pattern.toUpperCase());
+		var query = format("SELECT * FROM users u WHERE UPPER(u.userid) LIKE '%%%s%%'", pattern.toUpperCase());
 		var hits = DB.sql(query, User.class)
 				.stream()
 				.map(User::copyWithoutPassword)
